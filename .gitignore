@@ -3,3 +3,5 @@ dist/
 .env
 .idea/
 .venv/
+# Local Netlify folder
+.netlify

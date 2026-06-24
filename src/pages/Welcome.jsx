@@ -87,8 +87,8 @@ export default function Welcome() {
             sub="Open the full registry" delay={240} />
         ) : (
           <Entry to="/login" icon="🔑"
-            title="House Manager Log In"
-            sub="For the house manager only" delay={240} />
+            title="HP/HM Log In"
+            sub="For the HP/HM only" delay={240} />
         )}
       </div>
     </div>

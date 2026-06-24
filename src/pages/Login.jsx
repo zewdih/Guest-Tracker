@@ -20,8 +20,8 @@ export default function Login() {
 
   return (
     <div className="card" style={{ maxWidth: 440, margin: '24px auto' }}>
-      <h2>House Manager Log In</h2>
-      <p className="muted">This area is for the house manager only.</p>
+      <h2>HP/HM Log In</h2>
+      <p className="muted">This area is for the HP/HM only.</p>
 
       <form onSubmit={handleSubmit}>
         {error && <div className="banner error">{error}</div>}
