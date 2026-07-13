@@ -67,7 +67,7 @@ export default function Intake() {
   return (
     <div className="card" style={{ maxWidth: 440, margin: '24px auto' }}>
       <h2>Sign in a guest</h2>
-      <p className="muted">Welcome! Fill this out so the house knows who's around. Your details stay private to the house manager.</p>
+      <p className="muted">Welcome! Fill this out so the house knows who's around. Your details stay private to the House Manager/House President.</p>
 
       <form onSubmit={handleSubmit}>
         {status.state === 'error' && <div className="banner error">{status.msg}</div>}

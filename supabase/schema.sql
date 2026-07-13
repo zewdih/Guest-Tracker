@@ -326,6 +326,203 @@ select cron.schedule(
   $$select public.cleanup_old_visits()$$
 );
 
+-- ---------------------------------------------------------------------
+-- 10. BOOKINGS  (calendar-based guest room reservations)
+--     Public form — anyone in the house can book the guest room.
+--     No auth required (same pattern as the door intake form).
+-- ---------------------------------------------------------------------
+
+create table if not exists public.bookings (
+  id              uuid primary key default gen_random_uuid(),
+  booker_name     text not null,           -- who is booking
+  booker_phone    text not null,           -- their phone (digits only after normalize)
+  booker_email    text not null,           -- their email
+  guest_name      text not null,           -- who the guest is
+  arrival_date    date not null,
+  departure_date  date not null,
+  nights          int  not null,           -- departure - arrival, minimum 1
+  status          text not null default 'confirmed'
+                  check (status in ('confirmed', 'cancelled')),
+  created_at      timestamptz not null default now(),
+
+  constraint valid_booking_dates check (departure_date >= arrival_date)
+);
+
+create index if not exists bookings_dates_idx on public.bookings(arrival_date, departure_date);
+
+alter table public.bookings enable row level security;
+
+-- Managers can see and manage all bookings
+drop policy if exists "managers all bookings" on public.bookings;
+create policy "managers all bookings" on public.bookings
+  for all using (public.is_manager()) with check (public.is_manager());
+
+
+-- ---------------------------------------------------------------------
+-- 10b. BLOCKED DATES  (public function — shows which dates are taken)
+--      Returns only dates, no personal info. Safe for public use.
+-- ---------------------------------------------------------------------
+create or replace function public.blocked_dates()
+returns table (blocked_date date)
+language sql
+security definer
+stable
+set search_path = public
+as $$
+  select distinct d::date as blocked_date
+  from public.bookings b,
+       generate_series(b.arrival_date, b.departure_date, '1 day'::interval) d
+  where b.status = 'confirmed'
+    and b.departure_date >= current_date;
+$$;
+
+grant execute on function public.blocked_dates() to anon, authenticated;
+
+
+-- ---------------------------------------------------------------------
+-- 10c. SUBMIT BOOKING  (public function — inserts a booking)
+--      Same SECURITY DEFINER pattern as submit_guest: the caller can't
+--      touch the table directly, but this function does the insert.
+-- ---------------------------------------------------------------------
+create or replace function public.submit_booking(
+  p_your_name      text,
+  p_phone          text,
+  p_email          text,
+  p_guest_name     text,
+  p_arrival_date   date,
+  p_departure_date date
+)
+returns json
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_phone  text;
+  v_nights int;
+  v_conflict boolean;
+begin
+  -- Validate inputs
+  if trim(coalesce(p_your_name, '')) = '' then
+    raise exception 'Please enter your name.';
+  end if;
+  if trim(coalesce(p_guest_name, '')) = '' then
+    raise exception 'Please enter the guest''s name.';
+  end if;
+  if trim(coalesce(p_email, '')) = '' then
+    raise exception 'Please enter your email.';
+  end if;
+
+  -- Normalize phone: digits only
+  v_phone := regexp_replace(coalesce(p_phone, ''), '\D', '', 'g');
+  if length(v_phone) < 7 then
+    raise exception 'Please enter a valid phone number.';
+  end if;
+
+  if p_departure_date < p_arrival_date then
+    raise exception 'Check-out date cannot be before check-in date.';
+  end if;
+
+  -- Check for date conflicts with existing confirmed bookings
+  select exists (
+    select 1 from public.bookings
+    where status = 'confirmed'
+      and arrival_date <= p_departure_date
+      and departure_date >= p_arrival_date
+  ) into v_conflict;
+
+  if v_conflict then
+    raise exception 'Some of those dates are already booked. Please pick different dates.';
+  end if;
+
+  v_nights := greatest((p_departure_date - p_arrival_date), 1);
+
+  insert into public.bookings (
+    booker_name, booker_phone, booker_email, guest_name,
+    arrival_date, departure_date, nights
+  ) values (
+    trim(p_your_name), v_phone, trim(p_email), trim(p_guest_name),
+    p_arrival_date, p_departure_date, v_nights
+  );
+
+  return json_build_object(
+    'ok', true,
+    'nights', v_nights,
+    'guest_name', trim(p_guest_name)
+  );
+end;
+$$;
+
+grant execute on function public.submit_booking(text, text, text, text, date, date)
+  to anon, authenticated;
+
+
+-- ---------------------------------------------------------------------
+-- 10d. LOOKUP BOOKINGS  (public — find your bookings by email)
+--      Returns only upcoming confirmed bookings for the given email.
+--      Exposes minimal info: id, guest_name, dates, nights.
+-- ---------------------------------------------------------------------
+create or replace function public.lookup_bookings(p_email text)
+returns table (
+  id uuid,
+  guest_name text,
+  arrival_date date,
+  departure_date date,
+  nights int
+)
+language sql
+security definer
+stable
+set search_path = public
+as $$
+  select id, guest_name, arrival_date, departure_date, nights
+  from public.bookings
+  where lower(booker_email) = lower(trim(p_email))
+    and status = 'confirmed'
+    and departure_date >= current_date
+  order by arrival_date;
+$$;
+
+grant execute on function public.lookup_bookings(text) to anon, authenticated;
+
+
+-- ---------------------------------------------------------------------
+-- 10e. CANCEL BOOKING  (public — cancel your own booking by id + email)
+--      Requires both the booking id and the matching email as proof of
+--      ownership. Sets status to 'cancelled' so the dates free up.
+-- ---------------------------------------------------------------------
+create or replace function public.cancel_booking(p_booking_id uuid, p_email text)
+returns json
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_found boolean;
+begin
+  select exists (
+    select 1 from public.bookings
+    where id = p_booking_id
+      and lower(booker_email) = lower(trim(p_email))
+      and status = 'confirmed'
+  ) into v_found;
+
+  if not v_found then
+    raise exception 'Booking not found or already cancelled.';
+  end if;
+
+  update public.bookings
+  set status = 'cancelled'
+  where id = p_booking_id
+    and lower(booker_email) = lower(trim(p_email));
+
+  return json_build_object('ok', true);
+end;
+$$;
+
+grant execute on function public.cancel_booking(uuid, text) to anon, authenticated;
+
+
 -- =====================================================================
 --  DONE. See README for: creating accounts, making yourself a manager,
 --  and the network-tab privacy test.

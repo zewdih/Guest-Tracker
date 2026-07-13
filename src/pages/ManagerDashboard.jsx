@@ -46,6 +46,7 @@ export default function ManagerDashboard() {
   const [statusByGuest, setStatusByGuest] = useState({})
   const [tab, setTab] = useState('registry')
   const [loading, setLoading] = useState(true)
+  const [bookings, setBookings] = useState([])
   const [editId, setEditId] = useState(null)
   const [editDate, setEditDate] = useState('')
 
@@ -62,17 +63,23 @@ export default function ManagerDashboard() {
 
   async function load() {
     setLoading(true)
-    const [{ data: v }, { data: s }] = await Promise.all([
+    const [{ data: v }, { data: s }, { data: b }] = await Promise.all([
       supabase
         .from('visits')
         .select('id, arrival_date, expected_departure, nights, closed_at, expired_at, guest_id, guests(full_name, phone), host:hosts!host_id(display_name)')
         .is('expired_at', null)
         .order('arrival_date', { ascending: false }),
       supabase.from('guest_status').select('*'),
+      supabase
+        .from('bookings')
+        .select('*')
+        .eq('status', 'confirmed')
+        .order('arrival_date', { ascending: true }),
     ])
     const all = v || []
     setVisits(all.filter((r) => !r.closed_at))
     setHistory(all.filter((r) => r.closed_at))
+    setBookings(b || [])
     const map = {}
     ;(s || []).forEach((row) => { map[row.guest_id] = row })
     setStatusByGuest(map)
@@ -187,6 +194,12 @@ export default function ManagerDashboard() {
     return <span className={`badge ${st}`}>{st}</span>
   }
 
+  async function cancelBooking(id) {
+    if (!confirm('Cancel this guest room booking?')) return
+    await supabase.from('bookings').update({ status: 'cancelled' }).eq('id', id)
+    load()
+  }
+
   function clearFilters() {
     setSearchQuery(''); setFilterHost(''); setFilterFrom(''); setFilterTo('')
   }
@@ -198,8 +211,8 @@ export default function ManagerDashboard() {
       <div className="card">
         <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
           <div>
-            <h2>House Manager Dashboard</h2>
-            <p className="muted">The full registry — visible only to the House Manager.</p>
+            <h2>House Manager/House President Dashboard</h2>
+            <p className="muted">The full registry — visible only to the House Manager/House President.</p>
           </div>
           <Link to="/add" className="btn">+ Add a guest</Link>
         </div>
@@ -214,6 +227,9 @@ export default function ManagerDashboard() {
         <button className={`tab ${tab === 'registry' ? 'active' : ''}`} onClick={() => setTab('registry')}>Registry</button>
         <button className={`tab ${tab === 'roster' ? 'active' : ''}`} onClick={() => setTab('roster')}>Emergency roster</button>
         <button className={`tab ${tab === 'month' ? 'active' : ''}`} onClick={() => setTab('month')}>This month</button>
+        <button className={`tab ${tab === 'bookings' ? 'active' : ''}`} onClick={() => setTab('bookings')}>
+          Bookings{bookings.length > 0 ? ` (${bookings.length})` : ''}
+        </button>
         <button className={`tab ${tab === 'history' ? 'active' : ''}`} onClick={() => setTab('history')}>
           History{history.length > 0 ? ` (${history.length})` : ''}
         </button>
@@ -341,6 +357,48 @@ export default function ManagerDashboard() {
                         <td><span className={`badge ${g.status}`}>{g.status}</span></td>
                       </tr>
                     ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+      )}
+
+      {tab === 'bookings' && (
+        <div className="card tab-panel" key="bookings">
+          <h2>Guest room bookings</h2>
+          <p className="muted">All confirmed guest room reservations from the booking calendar.</p>
+          {bookings.length === 0 ? (
+            <div className="empty-state">
+              <div className="empty-icon">📅</div>
+              <p>No bookings yet.</p>
+              <p className="small">When someone books the guest room, it will show up here.</p>
+            </div>
+          ) : (
+            <div className="table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Booked by</th><th>Phone</th><th>Email</th>
+                    <th>Guest</th><th>Dates</th><th>Nights</th><th>Submitted</th><th></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {bookings.map((b) => (
+                    <tr key={b.id}>
+                      <td>{b.booker_name}</td>
+                      <td>{b.booker_phone}</td>
+                      <td>{b.booker_email}</td>
+                      <td>{b.guest_name}</td>
+                      <td className="small">{fmt(b.arrival_date)} – {fmt(b.departure_date)}</td>
+                      <td>{b.nights}</td>
+                      <td className="small muted">{fmtTimestamp(b.created_at)}</td>
+                      <td>
+                        <button className="icon-btn danger" onClick={() => cancelBooking(b.id)}
+                          title="Cancel booking">✕</button>
+                      </td>
+                    </tr>
+                  ))}
                 </tbody>
               </table>
             </div>

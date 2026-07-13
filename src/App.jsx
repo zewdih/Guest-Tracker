@@ -8,6 +8,7 @@ import Login from './pages/Login.jsx'
 import Intake from './pages/Intake.jsx'
 import MemberFeed from './pages/MemberFeed.jsx'
 import ManagerDashboard from './pages/ManagerDashboard.jsx'
+import Calendar from './pages/Calendar.jsx'
 
 const SCHEME_COLORS = {
   default: '#b5481f',
@@ -114,6 +115,7 @@ function AppRoutes() {
           managers to their own dashboard based on the account they signed in with. */}
       <Route path="/" element={<Shell><Welcome /></Shell>} />
       <Route path="/feed" element={<Shell><MemberFeed /></Shell>} />
+      <Route path="/calendar" element={<Shell><Calendar /></Shell>} />
       <Route path="/manager" element={
         <Shell><Protected managerOnly><ManagerDashboard /></Protected></Shell>
       } />
