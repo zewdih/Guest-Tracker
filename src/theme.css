@@ -464,3 +464,106 @@ tbody tr:hover { background: var(--row-hover); }
 .settings-divider {
   height: 1px; background: var(--border); margin: 4px 12px;
 }
+
+/* ---- Calendar grid ---- */
+.cal-nav {
+  display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px;
+}
+.cal-nav h3 { margin: 0; font-size: 1.05rem; }
+.cal-grid {
+  display: grid; grid-template-columns: repeat(7, 1fr); gap: 2px;
+}
+.cal-header {
+  text-align: center; font-size: .72rem; font-weight: 700;
+  color: var(--text-soft); padding: 6px 0; text-transform: uppercase;
+}
+.cal-day {
+  aspect-ratio: 1; display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  border-radius: 10px; cursor: pointer; font-size: .88rem; font-weight: 600;
+  border: 1px solid transparent;
+  transition: background 0.12s, border-color 0.12s;
+  position: relative;
+}
+@media (hover: hover) {
+  .cal-day:hover { background: var(--surface-2); border-color: var(--border); }
+}
+.cal-day.today { border-color: var(--brand); }
+.cal-day.selected { background: var(--brand); color: var(--brand-text); }
+.cal-day.in-range { background: var(--badge-casual-bg); }
+.cal-day.blocked {
+  background: var(--badge-overstay-bg); color: var(--badge-overstay-fg);
+  cursor: not-allowed; opacity: 0.7;
+}
+.cal-day.blocked:hover { background: var(--badge-overstay-bg); border-color: transparent; }
+.cal-day.empty { cursor: default; }
+.cal-day.empty:hover { background: transparent; border-color: transparent; }
+.cal-day.past { opacity: 0.35; cursor: default; }
+.cal-day.past:hover { background: transparent; border-color: transparent; }
+
+/* Calendar legend */
+.cal-legend {
+  display: flex; gap: 16px; justify-content: center; margin-top: 12px;
+  font-size: .78rem; color: var(--text-soft);
+}
+.cal-legend span { display: flex; align-items: center; gap: 5px; }
+.cal-legend-dot {
+  width: 10px; height: 10px; border-radius: 3px; display: inline-block;
+}
+.today-dot { border: 2px solid var(--brand); background: transparent; }
+.blocked-dot { background: var(--badge-overstay-bg); border: 1px solid var(--badge-overstay-fg); }
+.selected-dot { background: var(--brand); }
+
+/* Booking form animation */
+.booking-form { animation: fadeIn 0.25s ease-out; }
+
+/* Booking list items */
+.booking-item {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 12px 0; border-top: 1px solid var(--border); gap: 12px;
+}
+.booking-item:first-child { border-top: 0; }
+
+/* ---- Mobile responsive ---- */
+@media (max-width: 480px) {
+  .app { padding: 0 12px 48px; }
+  .card { padding: 16px; }
+  .topbar { padding: 14px 0; }
+
+  /* Calendar: slightly smaller text, tighter gap */
+  .cal-grid { gap: 1px; }
+  .cal-day { font-size: .8rem; border-radius: 8px; }
+  .cal-header { font-size: .65rem; padding: 4px 0; }
+  .cal-nav h3 { font-size: .95rem; }
+
+  /* Ensure tap targets are at least 44px (iOS guideline) */
+  .cal-day { min-height: 44px; }
+
+  /* Legend wraps nicely */
+  .cal-legend { gap: 12px; flex-wrap: wrap; font-size: .72rem; }
+
+  /* Welcome screen */
+  .wordmark h1 { font-size: 1.7rem; }
+  .entry { padding: 12px; }
+  .entry-icon { width: 38px; height: 38px; font-size: 1.1rem; }
+
+  /* Forms: slightly more compact */
+  input, select { padding: 10px 12px; font-size: .95rem; }
+  .btn { padding: 12px 16px; font-size: .95rem; }
+
+  /* Stats row */
+  .stat { padding: 12px; }
+  .stat .num { font-size: 1.6rem; }
+  .stat .label { font-size: .78rem; }
+
+  /* Tables scroll horizontally already via .table-wrap */
+}
+
+/* Extra small screens (iPhone SE, 320px) */
+@media (max-width: 360px) {
+  .cal-day { font-size: .72rem; min-height: 40px; border-radius: 6px; }
+  .cal-header { font-size: .6rem; }
+  .wordmark h1 { font-size: 1.5rem; }
+  .stats { gap: 8px; }
+  .stat .num { font-size: 1.4rem; }
+}

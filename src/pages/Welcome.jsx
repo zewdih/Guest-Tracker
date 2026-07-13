@@ -78,17 +78,20 @@ export default function Welcome() {
           sub="At the door — no account needed" delay={80} />
 
         <Entry to="/feed" icon="👥" title="Lobby board"
-          sub="See who's got visitors right now" delay={160} />
+          sub="See who's got visitors right now" delay={120} />
+
+        <Entry to="/calendar" icon="📅" title="Book the guest room"
+          sub="Reserve the guest room for upcoming guests" delay={200} />
 
         {loading ? null : session && profile?.role === 'manager' ? (
           <Entry onClick={() => navigate('/manager')}
             icon="🏠"
             title={`Continue as ${profile?.display_name || 'manager'}`}
-            sub="Open the full registry" delay={240} />
+            sub="Open the full registry" delay={280} />
         ) : (
           <Entry to="/login" icon="🔑"
             title="HP/HM Log In"
-            sub="For the HP/HM only" delay={240} />
+            sub="For the HP/HM only" delay={280} />
         )}
       </div>
     </div>

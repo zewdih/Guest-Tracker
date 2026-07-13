@@ -47,7 +47,7 @@ export default function MemberFeed() {
     <>
       <div className="card">
         <h2>The lobby board</h2>
-        <p className="muted">A friendly heads-up on who's got visitors. Names and contact details stay private to the house manager.</p>
+        <p className="muted">A friendly heads-up on who's got visitors. Names and contact details stay private to the House Manager/House President.</p>
         <div className="stats" style={{ marginTop: 12 }}>
           <div className="stat">
             <div className="num">{active.length}</div>
@@ -97,7 +97,7 @@ export default function MemberFeed() {
       </div>
 
       <div className="lock-note">
-        🔒 Names &amp; contact details are private to the house manager.
+        🔒 Names &amp; contact details are private to the House Manager/House President.
       </div>
 
       <p className="small muted center" style={{ marginTop: 16 }}>
