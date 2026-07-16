@@ -72,7 +72,7 @@ export default function ManagerDashboard() {
       supabase.from('guest_status').select('*'),
       supabase
         .from('bookings')
-        .select('*')
+        .select('*, host:profiles!host_id(display_name), visit:visits!visit_id(closed_at, arrival_date, expected_departure)')
         .eq('status', 'confirmed')
         .order('arrival_date', { ascending: true }),
     ])
@@ -196,7 +196,12 @@ export default function ManagerDashboard() {
 
   async function cancelBooking(id) {
     if (!confirm('Cancel this guest room booking?')) return
+    const booking = bookings.find((b) => b.id === id)
     await supabase.from('bookings').update({ status: 'cancelled' }).eq('id', id)
+    // Also close the linked visit so the guest disappears from lobby board
+    if (booking?.visit_id) {
+      await supabase.from('visits').update({ closed_at: new Date().toISOString() }).eq('id', booking.visit_id)
+    }
     load()
   }
 
@@ -379,26 +384,33 @@ export default function ManagerDashboard() {
               <table>
                 <thead>
                   <tr>
-                    <th>Booked by</th><th>Phone</th><th>Email</th>
-                    <th>Guest</th><th>Dates</th><th>Nights</th><th>Submitted</th><th></th>
+                    <th>Host</th><th>Guest</th><th>Dates</th><th>Nights</th>
+                    <th>Status</th><th>Email</th><th>Submitted</th><th></th>
                   </tr>
                 </thead>
                 <tbody>
-                  {bookings.map((b) => (
-                    <tr key={b.id}>
-                      <td>{b.booker_name}</td>
-                      <td>{b.booker_phone}</td>
-                      <td>{b.booker_email}</td>
-                      <td>{b.guest_name}</td>
-                      <td className="small">{fmt(b.arrival_date)} – {fmt(b.departure_date)}</td>
-                      <td>{b.nights}</td>
-                      <td className="small muted">{fmtTimestamp(b.created_at)}</td>
-                      <td>
-                        <button className="icon-btn danger" onClick={() => cancelBooking(b.id)}
-                          title="Cancel booking">✕</button>
-                      </td>
-                    </tr>
-                  ))}
+                  {bookings.map((b) => {
+                    const t = today()
+                    const bookingStatus = b.visit?.closed_at ? 'Closed'
+                      : t < b.arrival_date ? 'Upcoming'
+                      : t <= b.departure_date ? 'Active'
+                      : 'Past'
+                    return (
+                      <tr key={b.id}>
+                        <td>{b.host?.display_name || b.booker_name}</td>
+                        <td>{b.guest_name}</td>
+                        <td className="small">{fmt(b.arrival_date)} – {fmt(b.departure_date)}</td>
+                        <td>{b.nights}</td>
+                        <td><span className={`badge ${bookingStatus === 'Active' ? 'extended' : bookingStatus === 'Past' ? 'overstay' : 'casual'}`}>{bookingStatus}</span></td>
+                        <td className="small">{b.booker_email}</td>
+                        <td className="small muted">{fmtTimestamp(b.created_at)}</td>
+                        <td>
+                          <button className="icon-btn danger" onClick={() => cancelBooking(b.id)}
+                            title="Cancel booking">✕</button>
+                        </td>
+                      </tr>
+                    )
+                  })}
                 </tbody>
               </table>
             </div>
