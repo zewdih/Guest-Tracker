@@ -334,7 +334,7 @@ select cron.schedule(
 
 create table if not exists public.bookings (
   id              uuid primary key default gen_random_uuid(),
-  booker_name     text not null,           -- who is booking
+  booker_name     text not null,           -- who is booking (= host display_name)
   booker_phone    text not null,           -- their phone (digits only after normalize)
   booker_email    text not null,           -- their email
   guest_name      text not null,           -- who the guest is
@@ -344,6 +344,9 @@ create table if not exists public.bookings (
   status          text not null default 'confirmed'
                   check (status in ('confirmed', 'cancelled')),
   created_at      timestamptz not null default now(),
+  host_id         uuid references public.profiles(id),   -- which member is hosting
+  guest_phone     text,                                   -- guest's phone (for visit tracking)
+  visit_id        uuid references public.visits(id) on delete set null,  -- linked visit
 
   constraint valid_booking_dates check (departure_date >= arrival_date)
 );
@@ -384,13 +387,17 @@ grant execute on function public.blocked_dates() to anon, authenticated;
 --      Same SECURITY DEFINER pattern as submit_guest: the caller can't
 --      touch the table directly, but this function does the insert.
 -- ---------------------------------------------------------------------
+-- Drop old signature so we can create the new 8-param version
+drop function if exists public.submit_booking(text, text, text, text, date, date);
+
 create or replace function public.submit_booking(
-  p_your_name      text,
-  p_phone          text,
-  p_email          text,
-  p_guest_name     text,
+  p_phone          text,          -- booker's phone
+  p_email          text,          -- booker's email (for lookup/cancel)
+  p_guest_name     text,          -- who the guest is
   p_arrival_date   date,
-  p_departure_date date
+  p_departure_date date,
+  p_host_id        uuid,          -- which member is hosting (booker = host)
+  p_guest_phone    text           -- guest's phone (for visit tracking)
 )
 returns json
 language plpgsql
@@ -398,14 +405,15 @@ security definer
 set search_path = public
 as $$
 declare
-  v_phone  text;
-  v_nights int;
-  v_conflict boolean;
+  v_booker_phone text;
+  v_guest_phone  text;
+  v_nights       int;
+  v_conflict     boolean;
+  v_host_name    text;
+  v_guest_id     uuid;
+  v_visit_id     uuid;
 begin
   -- Validate inputs
-  if trim(coalesce(p_your_name, '')) = '' then
-    raise exception 'Please enter your name.';
-  end if;
   if trim(coalesce(p_guest_name, '')) = '' then
     raise exception 'Please enter the guest''s name.';
   end if;
@@ -413,10 +421,22 @@ begin
     raise exception 'Please enter your email.';
   end if;
 
-  -- Normalize phone: digits only
-  v_phone := regexp_replace(coalesce(p_phone, ''), '\D', '', 'g');
-  if length(v_phone) < 7 then
+  -- Validate host
+  select display_name into v_host_name from public.profiles where id = p_host_id;
+  if v_host_name is null then
+    raise exception 'Please pick a valid host from the list.';
+  end if;
+
+  -- Normalize booker phone: digits only
+  v_booker_phone := regexp_replace(coalesce(p_phone, ''), '\D', '', 'g');
+  if length(v_booker_phone) < 7 then
     raise exception 'Please enter a valid phone number.';
+  end if;
+
+  -- Normalize guest phone: digits only
+  v_guest_phone := regexp_replace(coalesce(p_guest_phone, ''), '\D', '', 'g');
+  if length(v_guest_phone) < 7 then
+    raise exception 'Please enter a valid phone number for the guest.';
   end if;
 
   if p_departure_date < p_arrival_date then
@@ -437,23 +457,38 @@ begin
 
   v_nights := greatest((p_departure_date - p_arrival_date), 1);
 
+  -- Upsert guest (same loyalty-card pattern as submit_guest)
+  insert into public.guests (full_name, phone)
+  values (trim(p_guest_name), v_guest_phone)
+  on conflict (phone) do update set full_name = excluded.full_name
+  returning id into v_guest_id;
+
+  -- Create visit (future-dated visits won't appear on lobby board until arrival)
+  insert into public.visits (guest_id, host_id, arrival_date, expected_departure, nights)
+  values (v_guest_id, p_host_id, p_arrival_date, p_departure_date, v_nights)
+  returning id into v_visit_id;
+
+  -- Create booking linked to the visit
   insert into public.bookings (
     booker_name, booker_phone, booker_email, guest_name,
-    arrival_date, departure_date, nights
+    arrival_date, departure_date, nights,
+    host_id, guest_phone, visit_id
   ) values (
-    trim(p_your_name), v_phone, trim(p_email), trim(p_guest_name),
-    p_arrival_date, p_departure_date, v_nights
+    v_host_name, v_booker_phone, trim(p_email), trim(p_guest_name),
+    p_arrival_date, p_departure_date, v_nights,
+    p_host_id, v_guest_phone, v_visit_id
   );
 
   return json_build_object(
     'ok', true,
     'nights', v_nights,
-    'guest_name', trim(p_guest_name)
+    'guest_name', trim(p_guest_name),
+    'host_name', v_host_name
   );
 end;
 $$;
 
-grant execute on function public.submit_booking(text, text, text, text, date, date)
+grant execute on function public.submit_booking(text, text, text, date, date, uuid, text)
   to anon, authenticated;
 
 
@@ -499,6 +534,7 @@ set search_path = public
 as $$
 declare
   v_found boolean;
+  v_visit uuid;
 begin
   select exists (
     select 1 from public.bookings
@@ -511,10 +547,20 @@ begin
     raise exception 'Booking not found or already cancelled.';
   end if;
 
+  -- Get the linked visit before cancelling
+  select visit_id into v_visit from public.bookings
+  where id = p_booking_id
+    and lower(booker_email) = lower(trim(p_email));
+
   update public.bookings
   set status = 'cancelled'
   where id = p_booking_id
     and lower(booker_email) = lower(trim(p_email));
+
+  -- Close the linked visit so it disappears from lobby board
+  if v_visit is not null then
+    update public.visits set closed_at = now() where id = v_visit;
+  end if;
 
   return json_build_object('ok', true);
 end;

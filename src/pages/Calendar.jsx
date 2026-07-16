@@ -31,8 +31,9 @@ export default function Calendar() {
   })
   const [blockedDates, setBlockedDates] = useState(new Set())
   const [range, setRange] = useState({ start: null, end: null })
+  const [roster, setRoster] = useState([])
   const [form, setForm] = useState({
-    your_name: '', phone: '', email: '', guest_name: '',
+    host_id: '', phone: '', email: '', guest_name: '', guest_phone: '',
   })
   const [status, setStatus] = useState({ state: 'idle', msg: '' })
 
@@ -51,6 +52,11 @@ export default function Calendar() {
   }
 
   useEffect(() => { loadBlocked() }, [])
+
+  // Load house roster for host dropdown (same pattern as Intake)
+  useEffect(() => {
+    supabase.rpc('house_roster').then(({ data }) => setRoster(data || []))
+  }, [])
 
   // Limit navigation: can't go before current month, can't go more than 12 months ahead
   const now = new Date()
@@ -161,12 +167,13 @@ export default function Calendar() {
 
     const nights = nightsBetween(range.start, range.end)
     const { data, error } = await supabase.rpc('submit_booking', {
-      p_your_name: form.your_name.trim(),
       p_phone: form.phone.trim(),
       p_email: form.email.trim(),
       p_guest_name: form.guest_name.trim(),
       p_arrival_date: range.start,
       p_departure_date: range.end,
+      p_host_id: form.host_id,
+      p_guest_phone: form.guest_phone.trim(),
     })
 
     if (error) {
@@ -177,7 +184,7 @@ export default function Calendar() {
         msg: `Guest room booked for ${form.guest_name.trim()} — ${fmt(range.start)} to ${fmt(range.end)} (${nights} night${nights !== 1 ? 's' : ''}).`,
       })
       setRange({ start: null, end: null })
-      setForm({ your_name: '', phone: '', email: '', guest_name: '' })
+      setForm({ host_id: '', phone: '', email: '', guest_name: '', guest_phone: '' })
       loadBlocked()
     }
   }
@@ -323,9 +330,13 @@ export default function Calendar() {
           <form onSubmit={handleBook}>
             {status.state === 'error' && <div className="banner error">{status.msg}</div>}
 
-            <label htmlFor="yourname">Your name</label>
-            <input id="yourname" required value={form.your_name} onChange={set('your_name')}
-              placeholder="Your full name" autoComplete="name" />
+            <label htmlFor="host">Your name</label>
+            <select id="host" required value={form.host_id} onChange={set('host_id')}>
+              <option value="" disabled>Pick your name…</option>
+              {roster.map((m) => (
+                <option key={m.id} value={m.id}>{m.display_name}</option>
+              ))}
+            </select>
 
             <label htmlFor="phone">Your phone number</label>
             <input id="phone" required type="tel" value={form.phone} onChange={set('phone')}
@@ -338,6 +349,10 @@ export default function Calendar() {
             <label htmlFor="guestname">Guest's name</label>
             <input id="guestname" required value={form.guest_name} onChange={set('guest_name')}
               placeholder="Who's staying in the guest room?" autoComplete="off" />
+
+            <label htmlFor="guestphone">Guest's phone number</label>
+            <input id="guestphone" required type="tel" value={form.guest_phone} onChange={set('guest_phone')}
+              placeholder="(510) 555-1234" inputMode="tel" />
 
             <p className="small muted" style={{ marginTop: 8 }}>
               Your details are private to the House Manager/House President.
