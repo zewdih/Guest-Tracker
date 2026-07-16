@@ -2,7 +2,7 @@
 
 A small, privacy-first guest tracker for the house. Two views over the same info:
 
-- **Lobby board** (any member): friendly heads-up like *"Reyna has a guest staying through Friday."* No names, no numbers.
+- **Lobby board** (any member): friendly heads-up like *"Zewdi has a guest staying through Friday."* No names, no numbers.
 - **Manager dashboard** (1–3 people): the real registry — guest names, phones, repeat visits, auto status flags, and an emergency roster.
 
 The private stuff lives in a locked database drawer (Supabase) and is **never sent to a member's browser** — not hidden, actually withheld at the source.
