@@ -421,8 +421,8 @@ begin
     raise exception 'Please enter your email.';
   end if;
 
-  -- Validate host
-  select display_name into v_host_name from public.profiles where id = p_host_id;
+  -- Validate host (use house_roster() to bypass RLS on profiles)
+  select display_name into v_host_name from public.house_roster() where id = p_host_id;
   if v_host_name is null then
     raise exception 'Please pick a valid host from the list.';
   end if;
@@ -469,14 +469,16 @@ begin
   returning id into v_visit_id;
 
   -- Create booking linked to the visit
+  -- Skip host_id (FK references profiles, but visits FK references hosts table;
+  -- host is already captured in booker_name and linked via visit_id)
   insert into public.bookings (
     booker_name, booker_phone, booker_email, guest_name,
     arrival_date, departure_date, nights,
-    host_id, guest_phone, visit_id
+    guest_phone, visit_id
   ) values (
     v_host_name, v_booker_phone, trim(p_email), trim(p_guest_name),
     p_arrival_date, p_departure_date, v_nights,
-    p_host_id, v_guest_phone, v_visit_id
+    v_guest_phone, v_visit_id
   );
 
   return json_build_object(
