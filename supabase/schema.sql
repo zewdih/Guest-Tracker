@@ -10,10 +10,11 @@
 
 -- Who's who. One row per logged-in account (linked to Supabase Auth).
 create table if not exists public.profiles (
-  id           uuid primary key references auth.users(id) on delete cascade,
+  id           uuid primary key default gen_random_uuid(),
   display_name text not null,
   role         text not null default 'member'
                check (role in ('member', 'manager')),
+  active       boolean not null default true,
   created_at   timestamptz not null default now()
 );
 
@@ -258,7 +259,7 @@ security definer
 stable
 set search_path = public
 as $$
-  select id, display_name from public.profiles order by display_name;
+  select id, display_name from public.profiles where active = true order by display_name;
 $$;
 
 grant execute on function public.house_roster() to anon, authenticated;
