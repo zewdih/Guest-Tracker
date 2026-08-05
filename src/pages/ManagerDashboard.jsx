@@ -3,7 +3,10 @@ import { Link } from 'react-router-dom'
 import { supabase } from '../supabaseClient'
 import { OVERSTAY_FINE_PER_NIGHT } from '../config'
 
-function today() { return new Date().toISOString().slice(0, 10) }
+function today() {
+  const d = new Date()
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+}
 function fmt(d) {
   return new Date(d + 'T00:00:00').toLocaleDateString(undefined, { month: 'short', day: 'numeric' })
 }
@@ -67,7 +70,6 @@ export default function ManagerDashboard() {
       supabase
         .from('visits')
         .select('id, arrival_date, expected_departure, nights, closed_at, expired_at, guest_id, guests(full_name, phone), host:profiles!host_id(display_name)')
-        .is('expired_at', null)
         .order('arrival_date', { ascending: false }),
       supabase.from('guest_status').select('*'),
       supabase
