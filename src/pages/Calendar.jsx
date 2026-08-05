@@ -8,7 +8,9 @@ const MONTHS = [
   'July','August','September','October','November','December',
 ]
 
-function toISO(d) { return d.toISOString().slice(0, 10) }
+function toISO(d) {
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+}
 function today() { return toISO(new Date()) }
 
 function daysInMonth(year, month) { return new Date(year, month + 1, 0).getDate() }

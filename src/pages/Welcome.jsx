@@ -4,6 +4,11 @@ import { useAuth } from '../useAuth'
 import { APP_NAME, APP_TAGLINE } from '../config'
 import { supabase } from '../supabaseClient'
 
+function today() {
+  const d = new Date()
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+}
+
 function greeting() {
   const h = new Date().getHours()
   if (h < 12) return 'Good morning'
@@ -49,7 +54,10 @@ export default function Welcome() {
     supabase
       .rpc('lobby_feed')
       .then(({ data }) => {
-        if (data) setGuestCount(data.filter((r) => r.is_active).length)
+        if (data) {
+          const t = today()
+          setGuestCount(data.filter((r) => r.arrival_date <= t && t <= r.expected_departure).length)
+        }
       })
   }, [])
 

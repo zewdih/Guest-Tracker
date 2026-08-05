@@ -157,15 +157,11 @@ with monthly as (
     count(*)     as visits_this_month
   from public.visits
   where date_trunc('month', arrival_date) = date_trunc('month', current_date)
-    and expired_at is null
-    and closed_at is null
   group by guest_id
 ),
 longest as (
   select guest_id, max(nights) as longest_single_visit
   from public.visits
-  where expired_at is null
-    and closed_at is null
   group by guest_id
 )
 select
@@ -319,13 +315,11 @@ begin
 end;
 $$;
 
--- Schedule: run once per day at 3 AM UTC.
--- Requires the pg_cron extension (enable in Supabase: Database -> Extensions -> pg_cron).
-select cron.schedule(
-  'cleanup-old-visits',
-  '0 3 * * *',
-  $$select public.cleanup_old_visits()$$
-);
+-- Cron job disabled: the cleanup was silently hiding old visit data from
+-- all views and the manager dashboard. Old visits are kept indefinitely;
+-- managers can close them manually if needed.
+-- To re-enable in future, uncomment:
+-- select cron.schedule('cleanup-old-visits', '0 3 * * *', $$select public.cleanup_old_visits()$$);
 
 -- ---------------------------------------------------------------------
 -- 10. BOOKINGS  (calendar-based guest room reservations)

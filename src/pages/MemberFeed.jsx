@@ -3,6 +3,11 @@ import { Link } from 'react-router-dom'
 import { supabase } from '../supabaseClient'
 import { SHOW_HOST_NAMES } from '../config'
 
+function today() {
+  const d = new Date()
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+}
+
 function fmt(dateStr) {
   return new Date(dateStr + 'T00:00:00').toLocaleDateString(undefined, {
     weekday: 'short', month: 'short', day: 'numeric',
@@ -39,7 +44,8 @@ export default function MemberFeed() {
       .then(({ data }) => { setRows(data || []); setLoading(false) })
   }, [])
 
-  const active = rows.filter((r) => r.is_active)
+  const t = today()
+  const active = rows.filter((r) => r.arrival_date <= t && t <= r.expected_departure)
 
   if (loading) return <Skeleton />
 
