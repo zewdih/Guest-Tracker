@@ -5,3 +5,4 @@ dist/
 .venv/
 # Local Netlify folder
 .netlify
+backups/
