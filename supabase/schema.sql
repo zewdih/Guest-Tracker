@@ -219,7 +219,8 @@ begin
     raise exception 'Departure date cannot be before arrival date.';
   end if;
 
-  select display_name into v_host from public.profiles where id = p_host_id;
+  -- Use house_roster() to bypass RLS on profiles (matches submit_booking pattern)
+  select display_name into v_host from public.house_roster() where id = p_host_id;
   if v_host is null then
     raise exception 'Please pick a valid host from the list.';
   end if;
