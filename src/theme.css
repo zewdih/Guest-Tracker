@@ -243,6 +243,16 @@ input:focus, select:focus { outline: 2px solid var(--accent); outline-offset: 1p
 .badge.extended { background: var(--badge-extended-bg); color: var(--badge-extended-fg); }
 .badge.overstay { background: var(--badge-overstay-bg); color: var(--badge-overstay-fg); }
 
+/* Booking-specific status badges (distinct from guest status) */
+.badge.booking-upcoming  { background: #e8f0fe; color: #1a56db; }
+.badge.booking-active    { background: #d1fae5; color: #065f46; }
+.badge.booking-past      { background: var(--surface-2); color: var(--text-soft); }
+.badge.booking-closed    { background: var(--surface-2); color: var(--text-soft); }
+.badge.booking-cancelled { background: #fee2e2; color: #991b1b; }
+[data-theme="dark"] .badge.booking-upcoming  { background: #1e3a5f; color: #93c5fd; }
+[data-theme="dark"] .badge.booking-active    { background: #064e3b; color: #6ee7b7; }
+[data-theme="dark"] .badge.booking-cancelled { background: #450a0a; color: #fca5a5; }
+
 /* ---- Table (manager) ---- */
 .table-wrap { overflow-x: auto; }
 table { width: 100%; border-collapse: collapse; font-size: .92rem; }
@@ -251,6 +261,18 @@ th { color: var(--text-soft); font-size: .78rem; text-transform: uppercase; lett
 tr:last-child td { border-bottom: 0; }
 tbody tr { transition: background 0.12s; }
 tbody tr:hover { background: var(--row-hover); }
+
+/* ---- Row status highlights (disabled — neutral badges used instead) ---- */
+
+/* ---- Tappable detail cell ---- */
+.tap-detail {
+  cursor: pointer; color: var(--brand); font-weight: 600;
+  display: inline-flex; align-items: center;
+  transition: color 0.15s;
+}
+.tap-detail:hover { color: var(--accent); }
+tr.detail-row { background: var(--surface-2); }
+tr.detail-row td { border-bottom: 1px solid var(--border); padding: 6px 12px; }
 
 /* ---- Collapsible section ---- */
 .collapse-toggle {
@@ -514,6 +536,20 @@ tbody tr:hover { background: var(--row-hover); }
 .blocked-dot { background: var(--badge-overstay-bg); border: 1px solid var(--badge-overstay-fg); }
 .selected-dot { background: var(--brand); }
 
+/* ---- This month list ---- */
+.month-list { display: flex; flex-direction: column; gap: 0; }
+.month-row {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 14px 0; border-bottom: 1px solid var(--border);
+}
+.month-row:last-of-type { border-bottom: 0; }
+.month-row-info { display: flex; flex-direction: column; gap: 2px; }
+.month-row-name { font-weight: 600; font-size: .95rem; }
+.month-row-detail { font-size: .82rem; color: var(--text-soft); }
+.month-row-reason { font-size: .82rem; color: var(--text-soft); font-style: italic; margin-top: 2px; }
+.month-row-right { display: flex; align-items: center; gap: 10px; }
+.month-row-nights { font-size: .95rem; font-weight: 700; white-space: nowrap; }
+
 /* Booking form animation */
 .booking-form { animation: fadeIn 0.25s ease-out; }
 
@@ -523,6 +559,142 @@ tbody tr:hover { background: var(--row-hover); }
   padding: 12px 0; border-top: 1px solid var(--border); gap: 12px;
 }
 .booking-item:first-child { border-top: 0; }
+
+/* ---- Acknowledgment flow (check-in step 2) ---- */
+.ack-header {
+  text-align: center; margin-bottom: 16px;
+}
+.ack-header-icon {
+  font-size: 2rem; margin-bottom: 2px;
+}
+.ack-header-title {
+  margin: 0 0 6px; font-size: 1.2rem;
+}
+.ack-header-detail {
+  margin: 0; font-size: .88rem; color: var(--text-soft);
+  display: flex; align-items: center; justify-content: center; gap: 6px;
+  flex-wrap: wrap;
+}
+.ack-header-detail .badge {
+  font-size: .7rem; padding: 2px 9px; vertical-align: middle;
+}
+
+.ack-reqs {
+  background: var(--surface-2); border-radius: 10px; padding: 14px 16px;
+  border: 1px solid var(--border); margin-bottom: 0;
+}
+.ack-reqs-label {
+  font-size: .88rem; font-weight: 700; margin-bottom: 10px;
+}
+.ack-requirement {
+  display: flex; align-items: flex-start; gap: 10px;
+  padding: 8px 0; font-size: .88rem; line-height: 1.4;
+}
+.ack-requirement + .ack-requirement { border-top: 1px solid var(--border); }
+.ack-req-icon { font-size: 1.1rem; flex: none; margin-top: 1px; }
+
+/* Badge tap-to-reveal popover */
+.badge-tap-wrap { position: relative; display: inline-block; }
+.badge.tappable { cursor: pointer; transition: filter 0.15s; }
+.badge.tappable:hover { filter: brightness(0.93); }
+.badge-info-hint {
+  font-size: .65rem; margin-left: 2px; opacity: 0.7;
+}
+.badge-popover {
+  position: absolute; left: 50%; transform: translateX(-50%);
+  top: calc(100% + 8px); z-index: 100;
+  width: 280px; padding: 14px 16px;
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--radius); box-shadow: 0 4px 20px rgba(0,0,0,.12);
+  display: flex; flex-direction: column; gap: 6px;
+  animation: fadeIn 0.15s ease-out;
+  text-align: left;
+}
+.badge-popover-title {
+  font-weight: 700; font-size: .85rem; color: var(--text);
+}
+.badge-popover-desc {
+  font-size: .82rem; color: var(--text-soft); line-height: 1.4;
+}
+.badge-popover-item {
+  font-size: .82rem; color: var(--text); line-height: 1.4;
+  padding: 4px 0; border-top: 1px solid var(--border);
+}
+.badge-popover-note {
+  font-size: .82rem; color: var(--text-soft); padding: 2px 0;
+}
+
+.ack-divider {
+  border: none; border-top: 1px solid var(--border); margin: 16px 0;
+}
+
+.ack-cleanup-intro { margin-bottom: 12px; }
+.ack-cleanup-title {
+  font-size: .92rem; font-weight: 700; margin: 0 0 6px; color: var(--text);
+}
+.ack-cleanup-intro p {
+  font-size: .88rem; color: var(--text-soft); margin: 0; line-height: 1.5;
+}
+
+.ack-check {
+  display: flex; align-items: center; gap: 12px;
+  padding: 12px 14px; margin: 0 0 6px; border-radius: 10px;
+  background: var(--surface-2); border: 1px solid var(--border);
+  cursor: pointer; font-size: .88rem; line-height: 1.35;
+  transition: background 0.15s, border-color 0.15s;
+  -webkit-user-select: none; user-select: none;
+}
+.ack-check:last-of-type { margin-bottom: 0; }
+.ack-check:hover { border-color: var(--accent); }
+.ack-check.checked {
+  background: var(--badge-casual-bg); border-color: var(--badge-casual-fg);
+}
+.ack-check-icon { font-size: 1.1rem; flex: none; }
+
+.ack-checkbox {
+  width: 24px; height: 24px; border-radius: 50%; flex: none;
+  display: flex; align-items: center; justify-content: center;
+  font-size: .75rem; font-weight: 700;
+  background: transparent; border: 2px solid var(--border);
+  color: transparent;
+  transition: background 0.2s, border-color 0.2s, color 0.2s, transform 0.15s;
+}
+.ack-checkbox.done {
+  background: var(--accent); border-color: var(--accent);
+  color: #fff; font-size: .8rem;
+  transform: scale(1.05);
+}
+
+/* ---- Checkout flow (check-out tab) ---- */
+.checkout-checklist {
+  display: flex; flex-direction: column; gap: 6px;
+}
+.checkout-check-item {
+  display: flex; align-items: center; gap: 12px;
+  padding: 12px 14px; border-radius: 10px;
+  background: var(--surface-2); border: 1px solid var(--border);
+  cursor: pointer; font-weight: 400; margin: 0; font-size: .9rem;
+  transition: background 0.15s, border-color 0.15s;
+  -webkit-user-select: none; user-select: none;
+}
+.checkout-check-item:hover { border-color: var(--accent); }
+.checkout-check-item.checked {
+  background: var(--badge-casual-bg); border-color: var(--badge-casual-fg);
+}
+.checkout-check-item input[type="checkbox"] {
+  width: 22px; height: 22px; flex: none;
+  accent-color: var(--accent); cursor: pointer;
+}
+.cleanup-step-icon { font-size: 1.1rem; flex: none; }
+.cleanup-header-icon {
+  width: 38px; height: 38px; border-radius: 10px; flex: none;
+  background: var(--surface); border: 1px solid var(--border);
+  display: flex; align-items: center; justify-content: center; font-size: 1.2rem;
+}
+.cleanup-header {
+  display: flex; align-items: center; gap: 12px; margin-bottom: 12px;
+}
+.cleanup-header strong { display: block; font-size: .95rem; }
 
 /* ---- Mobile responsive ---- */
 @media (max-width: 480px) {

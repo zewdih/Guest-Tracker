@@ -566,6 +566,131 @@ $$;
 grant execute on function public.cancel_booking(uuid, text) to anon, authenticated;
 
 
+-- ---------------------------------------------------------------------
+-- 11. GUEST CHECKOUT CONFIRMATION  (good-faith cleanup checklist)
+--     Guests revisit the QR code URL, enter their phone, and confirm
+--     they completed the cleanup steps. No auth needed.
+-- ---------------------------------------------------------------------
+alter table public.visits add column if not exists checkout_confirmed_at timestamptz;
+
+-- Lookup: find the guest's active visit by phone number.
+-- Returns minimal info (visit id, host name, dates) — no sensitive data.
+create or replace function public.lookup_active_visit(p_phone text)
+returns json
+language plpgsql
+security definer
+stable
+set search_path = public
+as $$
+declare
+  v_phone text;
+  v_result json;
+begin
+  v_phone := regexp_replace(coalesce(p_phone, ''), '\D', '', 'g');
+  if length(v_phone) < 7 then
+    raise exception 'Please enter a valid phone number.';
+  end if;
+
+  select json_build_object(
+    'visit_id', v.id,
+    'guest_name', g.full_name,
+    'host_name', h.display_name,
+    'arrival_date', v.arrival_date,
+    'expected_departure', v.expected_departure,
+    'checkout_confirmed', v.checkout_confirmed_at is not null
+  ) into v_result
+  from public.visits v
+  join public.guests g on g.id = v.guest_id
+  join public.house_roster() h on h.id = v.host_id
+  where g.phone = v_phone
+    and v.closed_at is null
+    and v.expired_at is null
+  order by v.arrival_date desc
+  limit 1;
+
+  if v_result is null then
+    raise exception 'No active visit found for that phone number.';
+  end if;
+
+  return v_result;
+end;
+$$;
+
+grant execute on function public.lookup_active_visit(text) to anon, authenticated;
+
+-- Confirm checkout: guest marks their cleanup as done.
+create or replace function public.confirm_checkout(p_phone text)
+returns json
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_phone text;
+  v_visit_id uuid;
+begin
+  v_phone := regexp_replace(coalesce(p_phone, ''), '\D', '', 'g');
+  if length(v_phone) < 7 then
+    raise exception 'Please enter a valid phone number.';
+  end if;
+
+  select v.id into v_visit_id
+  from public.visits v
+  join public.guests g on g.id = v.guest_id
+  where g.phone = v_phone
+    and v.closed_at is null
+    and v.expired_at is null
+  order by v.arrival_date desc
+  limit 1;
+
+  if v_visit_id is null then
+    raise exception 'No active visit found for that phone number.';
+  end if;
+
+  update public.visits
+  set checkout_confirmed_at = now()
+  where id = v_visit_id;
+
+  return json_build_object('ok', true);
+end;
+$$;
+
+grant execute on function public.confirm_checkout(text) to anon, authenticated;
+
+
+-- ---------------------------------------------------------------------
+-- 12. GUEST MONTH STATUS  (cumulative nights lookup for the door form)
+--     Public function so the intake form can show the real cumulative
+--     status at check-in, even though guest_status view is manager-only.
+--     Returns only aggregate numbers — no guest name, no phone, no PII.
+-- ---------------------------------------------------------------------
+create or replace function public.guest_month_status(p_phone text)
+returns json
+language plpgsql
+security definer
+stable
+set search_path = public
+as $$
+declare
+  v_phone text;
+  v_result json;
+begin
+  v_phone := regexp_replace(coalesce(p_phone, ''), '\D', '', 'g');
+  select json_build_object(
+    'nights_this_month', coalesce(sum(v.nights), 0),
+    'longest_single_visit', coalesce(max(v.nights), 0)
+  ) into v_result
+  from public.visits v
+  join public.guests g on g.id = v.guest_id
+  where g.phone = v_phone
+    and date_trunc('month', v.arrival_date) = date_trunc('month', current_date);
+  return coalesce(v_result, json_build_object('nights_this_month', 0, 'longest_single_visit', 0));
+end;
+$$;
+
+grant execute on function public.guest_month_status(text) to anon, authenticated;
+
+
 -- =====================================================================
 --  DONE. See README for: creating accounts, making yourself a manager,
 --  and the network-tab privacy test.
