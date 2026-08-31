@@ -286,9 +286,8 @@ as $$
     v.expected_departure,
     (current_date between v.arrival_date and v.expected_departure) as is_active
   from public.visits v
-  join public.house_roster() h on h.id = v.host_id
+  join public.profiles h on h.id = v.host_id
   where v.expired_at is null
-    and v.closed_at is null
   order by v.expected_departure asc;
 $$;
 
