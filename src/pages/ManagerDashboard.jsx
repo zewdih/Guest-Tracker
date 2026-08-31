@@ -73,7 +73,7 @@ export default function ManagerDashboard() {
     const [{ data: v }, { data: s }, { data: b }] = await Promise.all([
       supabase
         .from('visits')
-        .select('id, arrival_date, expected_departure, nights, closed_at, expired_at, checkout_confirmed_at, guest_id, guests(full_name, phone), host:profiles!host_id(display_name)')
+        .select('id, arrival_date, expected_departure, nights, closed_at, expired_at, guest_id, guests(full_name, phone), host:profiles!host_id(display_name)')
         .order('arrival_date', { ascending: false }),
       supabase.from('guest_status').select('*'),
       supabase
