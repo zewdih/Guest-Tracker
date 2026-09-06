@@ -1,3 +1,6 @@
+// Copyright (c) 2026 Zewditu Herring
+// SPDX-License-Identifier: MIT OR Apache-2.0
+
 // Usage: node --env-file=.env scripts/restore.js backups/2026-08-04_15-30-00
 //   or:  npm run restore -- backups/2026-08-04_15-30-00
 //

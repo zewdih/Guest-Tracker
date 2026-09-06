@@ -1,3 +1,6 @@
+// Copyright (c) 2026 Zewditu Herring
+// SPDX-License-Identifier: MIT OR Apache-2.0
+
 import { createContext, useContext, useEffect, useState } from 'react'
 import { supabase } from './supabaseClient'
 import { MANAGER_EMAIL } from './config'

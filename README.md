@@ -95,3 +95,16 @@ Then open the address it prints (usually http://localhost:5173). You'll need the
 - No payments or fine collection — handled offline.
 - No workshift/meal assignments.
 - Guest names are kept private, which is intentionally the opposite of the old "post names in Discord" clause. Decide separately whether this replaces that.
+
+---
+
+## License
+
+Copyright (c) 2026 Zewditu Herring. All rights reserved.
+
+This project is dual-licensed under your choice of:
+
+- [MIT License](LICENSE-MIT)
+- [Apache License, Version 2.0](LICENSE-APACHE)
+
+You may use this software under the terms of either license.

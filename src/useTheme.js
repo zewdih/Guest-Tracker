@@ -1,4 +1,7 @@
-import { useEffect, useState, useRef } from 'react'
+// Copyright (c) 2026 Zewditu Herring
+// SPDX-License-Identifier: MIT OR Apache-2.0
+
+import { useEffect, useState } from 'react'
 
 const THEME_KEY = 'aath-theme'
 const SCHEME_KEY = 'aath-scheme'
@@ -38,7 +41,5 @@ export function useTheme() {
     localStorage.setItem(SCHEME_KEY, scheme)
   }, [scheme])
 
-  const toggle = () => setTheme((t) => (t === 'dark' ? 'light' : 'dark'))
-
-  return { theme, setTheme, toggle, scheme, setScheme, schemes: SCHEMES }
+  return { theme, setTheme, scheme, setScheme, schemes: SCHEMES }
 }

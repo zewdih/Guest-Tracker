@@ -1,19 +1,11 @@
+// Copyright (c) 2026 Zewditu Herring
+// SPDX-License-Identifier: MIT OR Apache-2.0
+
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { supabase } from '../supabaseClient'
+import { today, plusDays, nightsBetween } from '../utils/dateHelpers'
 
-function today() {
-  const d = new Date()
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
-}
-function plusDays(dateStr, n) {
-  const d = new Date(dateStr + 'T00:00:00')
-  d.setDate(d.getDate() + n)
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
-}
-function fmt(d) {
-  return new Date(d + 'T00:00:00').toLocaleDateString(undefined, { month: 'short', day: 'numeric' })
-}
 function capitalize(str) {
   return str.replace(/\b\w/g, (c) => c.toUpperCase())
 }
@@ -87,10 +79,7 @@ export default function Intake() {
 
   const set = (k) => (e) => setForm((f) => ({ ...f, [k]: e.target.value }))
 
-  const nights = Math.max(
-    Math.round((new Date(form.expected_departure) - new Date(form.arrival_date)) / 86400000),
-    1
-  )
+  const nights = nightsBetween(form.arrival_date, form.expected_departure)
 
   async function handleSubmit(e) {
     e.preventDefault()

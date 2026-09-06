@@ -1,13 +1,12 @@
+// Copyright (c) 2026 Zewditu Herring
+// SPDX-License-Identifier: MIT OR Apache-2.0
+
 import { useEffect, useState } from 'react'
 import { Link, useNavigate, useLocation } from 'react-router-dom'
 import { useAuth } from '../useAuth'
 import { APP_NAME, APP_TAGLINE } from '../config'
 import { supabase } from '../supabaseClient'
-
-function today() {
-  const d = new Date()
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
-}
+import { today } from '../utils/dateHelpers'
 
 function greeting() {
   const h = new Date().getHours()
