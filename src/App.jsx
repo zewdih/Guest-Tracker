@@ -1,3 +1,6 @@
+// Copyright (c) 2026 Zewditu Herring
+// SPDX-License-Identifier: MIT OR Apache-2.0
+
 import { useState, useRef, useEffect } from 'react'
 import { Routes, Route, Link, Navigate, useLocation } from 'react-router-dom'
 import { AuthProvider, useAuth } from './useAuth'

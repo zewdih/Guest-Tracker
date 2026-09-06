@@ -232,6 +232,14 @@ begin
   on conflict (phone) do update set full_name = excluded.full_name
   returning id into v_guest;
 
+  -- Auto-close any existing open visit for this guest+host so duplicate
+  -- rows don't appear on the lobby board.
+  update public.visits
+  set closed_at = now()
+  where guest_id = v_guest
+    and host_id  = p_host_id
+    and closed_at is null;
+
   insert into public.visits (guest_id, host_id, arrival_date, expected_departure, nights)
   values (v_guest, p_host_id, p_arrival_date, p_expected_departure, v_nights);
 

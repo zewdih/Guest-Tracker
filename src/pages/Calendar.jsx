@@ -1,7 +1,11 @@
+// Copyright (c) 2026 Zewditu Herring
+// SPDX-License-Identifier: MIT OR Apache-2.0
+
 import { useEffect, useState, useMemo } from 'react'
 import { supabase } from '../supabaseClient'
+import { today, fmt, nightsBetween } from '../utils/dateHelpers'
 
-// ---- date helpers ----
+// ---- calendar-specific helpers ----
 const DAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
 const MONTHS = [
   'January','February','March','April','May','June',
@@ -11,19 +15,9 @@ const MONTHS = [
 function toISO(d) {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
 }
-function today() { return toISO(new Date()) }
 
 function daysInMonth(year, month) { return new Date(year, month + 1, 0).getDate() }
 function firstDayOfWeek(year, month) { return new Date(year, month, 1).getDay() }
-
-function fmt(dateStr) {
-  const d = new Date(dateStr + 'T12:00:00')
-  return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
-}
-
-function nightsBetween(a, b) {
-  return Math.max(Math.round((new Date(b) - new Date(a)) / 86400000), 1)
-}
 
 // ---- component ----
 export default function Calendar() {

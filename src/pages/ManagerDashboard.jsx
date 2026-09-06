@@ -1,21 +1,12 @@
+// Copyright (c) 2026 Zewditu Herring
+// SPDX-License-Identifier: MIT OR Apache-2.0
+
 import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { supabase } from '../supabaseClient'
-import { OVERSTAY_FINE_PER_NIGHT } from '../config'
+import { OVERSTAY_FINE_PER_NIGHT, DASHBOARD_REFRESH_INTERVAL } from '../config'
+import { today, fmt, fmtFull, fmtTimestamp, nightsBetween } from '../utils/dateHelpers'
 
-function today() {
-  const d = new Date()
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
-}
-function fmt(d) {
-  return new Date(d + 'T00:00:00').toLocaleDateString(undefined, { month: 'short', day: 'numeric' })
-}
-function fmtFull(d) {
-  return new Date(d + 'T00:00:00').toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' })
-}
-function fmtTimestamp(ts) {
-  return new Date(ts).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' })
-}
 function ordinal(n) {
   const s = ['th', 'st', 'nd', 'rd'], v = n % 100
   return n + (s[(v - 20) % 10] || s[v] || s[0])
@@ -93,7 +84,7 @@ export default function ManagerDashboard() {
 
   useEffect(() => {
     load()
-    const interval = setInterval(load, 300000)
+    const interval = setInterval(load, DASHBOARD_REFRESH_INTERVAL)
     return () => clearInterval(interval)
   }, [])
 
@@ -206,9 +197,7 @@ export default function ManagerDashboard() {
 
   async function saveEdit(id) {
     const f = editFields
-    const nights = Math.max(
-      Math.round((new Date(f.expected_departure) - new Date(f.arrival_date)) / 86400000), 1
-    )
+    const nights = nightsBetween(f.arrival_date, f.expected_departure)
     await Promise.all([
       supabase.from('visits').update({
         arrival_date: f.arrival_date,
@@ -243,9 +232,7 @@ export default function ManagerDashboard() {
 
   async function saveHistEdit(id) {
     const f = histEditFields
-    const nights = Math.max(
-      Math.round((new Date(f.expected_departure) - new Date(f.arrival_date)) / 86400000), 1
-    )
+    const nights = nightsBetween(f.arrival_date, f.expected_departure)
     await Promise.all([
       supabase.from('visits').update({
         arrival_date: f.arrival_date,
@@ -283,9 +270,7 @@ export default function ManagerDashboard() {
 
   async function saveBookEdit(id) {
     const f = bookEditFields
-    const nights = Math.max(
-      Math.round((new Date(f.departure_date) - new Date(f.arrival_date)) / 86400000), 1
-    )
+    const nights = nightsBetween(f.arrival_date, f.departure_date)
     // Update the booking
     await supabase.from('bookings').update({
       guest_name: f.guest_name.trim(),
@@ -397,7 +382,7 @@ export default function ManagerDashboard() {
                                 {' – '}
                                 <input type="date" value={editFields.expected_departure} min={editFields.arrival_date} onChange={(e) => setEditFields({ ...editFields, expected_departure: e.target.value })} style={{ width: 130 }} />
                               </td>
-                              <td>{Math.max(Math.round((new Date(editFields.expected_departure) - new Date(editFields.arrival_date)) / 86400000), 1)}</td>
+                              <td>{nightsBetween(editFields.arrival_date, editFields.expected_departure)}</td>
                               <td><Badge visitId={v.id} guestId={v.guest_id} /></td>
                               <td className="small">{visitOrdinal[v.id] ? `${ordinal(visitOrdinal[v.id])} this month` : '—'}</td>
                               <td>
@@ -573,7 +558,7 @@ export default function ManagerDashboard() {
                               {' – '}
                               <input type="date" value={bookEditFields.departure_date} min={bookEditFields.arrival_date} onChange={(e) => setBookEditFields({ ...bookEditFields, departure_date: e.target.value })} style={{ width: 130 }} />
                             </td>
-                            <td>{Math.max(Math.round((new Date(bookEditFields.departure_date) - new Date(bookEditFields.arrival_date)) / 86400000), 1)}</td>
+                            <td>{nightsBetween(bookEditFields.arrival_date, bookEditFields.departure_date)}</td>
                             <td>
                               <select value={bookEditFields.status} onChange={(e) => setBookEditFields({ ...bookEditFields, status: e.target.value })} style={{ width: 120 }}>
                                 <option value="confirmed">Confirmed</option>
@@ -698,7 +683,7 @@ export default function ManagerDashboard() {
                               {' – '}
                               <input type="date" value={histEditFields.expected_departure} min={histEditFields.arrival_date} onChange={(e) => setHistEditFields({ ...histEditFields, expected_departure: e.target.value })} style={{ width: 130 }} />
                             </td>
-                            <td>{Math.max(Math.round((new Date(histEditFields.expected_departure) - new Date(histEditFields.arrival_date)) / 86400000), 1)}</td>
+                            <td>{nightsBetween(histEditFields.arrival_date, histEditFields.expected_departure)}</td>
                             <td className="small muted">{fmtTimestamp(v.closed_at)}</td>
                             <td>
                               <div className="row-actions">

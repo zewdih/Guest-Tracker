@@ -1,3 +1,6 @@
+// Copyright (c) 2026 Zewditu Herring
+// SPDX-License-Identifier: MIT OR Apache-2.0
+
 // Usage: node --env-file=.env scripts/update-roster.js
 //
 // Deactivates departing members and adds new members to profiles.

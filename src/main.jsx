@@ -1,3 +1,6 @@
+// Copyright (c) 2026 Zewditu Herring
+// SPDX-License-Identifier: MIT OR Apache-2.0
+
 import React from 'react'
 import { createRoot } from 'react-dom/client'
 import { BrowserRouter } from 'react-router-dom'

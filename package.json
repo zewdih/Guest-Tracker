@@ -2,6 +2,8 @@
   "name": "afro-house-guest-tracker",
   "private": true,
   "version": "1.0.0",
+  "author": "Zewditu Herring",
+  "license": "(MIT OR Apache-2.0)",
   "type": "module",
   "scripts": {
     "dev": "vite",

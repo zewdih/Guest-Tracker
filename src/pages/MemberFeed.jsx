@@ -1,14 +1,13 @@
+// Copyright (c) 2026 Zewditu Herring
+// SPDX-License-Identifier: MIT OR Apache-2.0
+
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { supabase } from '../supabaseClient'
 import { SHOW_HOST_NAMES } from '../config'
+import { today } from '../utils/dateHelpers'
 
-function today() {
-  const d = new Date()
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
-}
-
-function fmt(dateStr) {
+function fmtWithDay(dateStr) {
   return new Date(dateStr + 'T00:00:00').toLocaleDateString(undefined, {
     weekday: 'short', month: 'short', day: 'numeric',
   })
@@ -93,7 +92,7 @@ export default function MemberFeed() {
                     {SHOW_HOST_NAMES
                       ? <><strong>{r.host_name}</strong> has a guest staying</>
                       : <>A member has a guest staying</>}
-                    {' '}— through {fmt(r.expected_departure)}.
+                    {' '}— through {fmtWithDay(r.expected_departure)}.
                   </div>
                 </div>
               ))
