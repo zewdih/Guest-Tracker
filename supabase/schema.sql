@@ -376,10 +376,12 @@ stable
 set search_path = public
 as $$
   select distinct d::date as blocked_date
-  from public.bookings b,
-       generate_series(b.arrival_date, b.departure_date, '1 day'::interval) d
+  from public.bookings b
+    cross join lateral generate_series(b.arrival_date, b.departure_date, '1 day'::interval) d
+    left join public.visits v on b.visit_id = v.id
   where b.status = 'confirmed'
-    and b.departure_date >= current_date;
+    and b.departure_date >= current_date
+    and (b.visit_id is null or v.closed_at is null);
 $$;
 
 grant execute on function public.blocked_dates() to anon, authenticated;
