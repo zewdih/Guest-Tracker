@@ -175,12 +175,16 @@ export default function ManagerDashboard() {
   async function closeOut(id) {
     if (!confirm('Close out this visit? It will move to history.')) return
     await supabase.from('visits').update({ closed_at: new Date().toISOString() }).eq('id', id)
+    // Also cancel any linked booking so the dates become available again
+    await supabase.from('bookings').update({ status: 'cancelled' }).eq('visit_id', id).eq('status', 'confirmed')
     load()
   }
 
   async function reopenVisit(id) {
     if (!confirm('Reopen this visit? It will move back to the active registry.')) return
     await supabase.from('visits').update({ closed_at: null }).eq('id', id)
+    // Also re-confirm any linked booking so the dates are blocked again
+    await supabase.from('bookings').update({ status: 'confirmed' }).eq('visit_id', id).eq('status', 'cancelled')
     load()
   }
 
