@@ -296,6 +296,7 @@ as $$
   from public.visits v
   join public.profiles h on h.id = v.host_id
   where v.expired_at is null
+    and v.closed_at is null
   order by v.expected_departure asc;
 $$;
 
