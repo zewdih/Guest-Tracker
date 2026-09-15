@@ -448,11 +448,14 @@ begin
   end if;
 
   -- Check for date conflicts with existing confirmed bookings
+  -- Must mirror blocked_dates() logic: ignore bookings whose linked visit is closed
   select exists (
-    select 1 from public.bookings
-    where status = 'confirmed'
-      and arrival_date <= p_departure_date
-      and departure_date >= p_arrival_date
+    select 1 from public.bookings b
+      left join public.visits v on b.visit_id = v.id
+    where b.status = 'confirmed'
+      and b.arrival_date <= p_departure_date
+      and b.departure_date >= p_arrival_date
+      and (b.visit_id is null or v.closed_at is null)
   ) into v_conflict;
 
   if v_conflict then
