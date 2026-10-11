@@ -387,6 +387,7 @@ $$;
 grant execute on function public.blocked_dates() to anon, authenticated;
 
 
+
 -- ---------------------------------------------------------------------
 -- 10c. SUBMIT BOOKING  (public function — inserts a booking)
 --      Same SECURITY DEFINER pattern as submit_guest: the caller can't
@@ -702,6 +703,41 @@ end;
 $$;
 
 grant execute on function public.guest_month_status(text) to anon, authenticated;
+
+
+-- ---------------------------------------------------------------------
+-- 13. APP LOGS  (frontend observability)
+--     Stores error/warning/info logs sent by the browser via the
+--     ingest-logs edge function. Only managers can read them.
+-- ---------------------------------------------------------------------
+
+create table if not exists public.app_logs (
+  id         bigint generated always as identity primary key,
+  level      text not null default 'info',
+  message    text not null,
+  url        text,
+  context    jsonb,
+  logged_at  timestamptz not null default now(),
+  created_at timestamptz not null default now()
+);
+
+create index if not exists app_logs_level_time on public.app_logs (level, logged_at desc);
+
+alter table public.app_logs enable row level security;
+
+drop policy if exists "managers read logs" on public.app_logs;
+create policy "managers read logs" on public.app_logs
+  for select using (public.is_manager());
+
+create or replace function public.cleanup_old_logs()
+returns void
+language sql
+security definer
+set search_path = public
+as $$
+  delete from public.app_logs
+  where logged_at < now() - interval '30 days';
+$$;
 
 
 -- =====================================================================

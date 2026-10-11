@@ -4,6 +4,7 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { supabase } from '../supabaseClient'
+import { log } from '../logger'
 import { today, plusDays, nightsBetween } from '../utils/dateHelpers'
 
 function capitalize(str) {
@@ -92,6 +93,7 @@ export default function Intake() {
       p_expected_departure: form.expected_departure,
     })
     if (error) {
+      log.error('Guest check-in failed', { page: 'Intake', error: error.message })
       setStatus({ state: 'error', msg: error.message })
     } else {
       // Look up cumulative nights this month for the guest (now that the visit is recorded)
