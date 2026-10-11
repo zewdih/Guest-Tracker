@@ -329,6 +329,7 @@ tr.detail-row td { border-bottom: 1px solid var(--border); padding: 6px 12px; }
 }
 .banner.ok    { background: var(--badge-casual-bg);   color: var(--badge-casual-fg); }
 .banner.error { background: var(--badge-overstay-bg); color: var(--badge-overstay-fg); }
+.banner.warn  { background: var(--badge-extended-bg);  color: var(--badge-extended-fg); }
 
 .row-actions { display: flex; gap: 6px; }
 .small { font-size: .82rem; }
@@ -650,6 +651,13 @@ tr.detail-row td { border-bottom: 1px solid var(--border); padding: 6px 12px; }
   background: var(--badge-casual-bg); border-color: var(--badge-casual-fg);
 }
 .ack-check-icon { font-size: 1.1rem; flex: none; }
+
+/* Secondary "go back" link under the confirm button — padded for thumbs */
+.ack-back {
+  display: block; margin: 6px auto 0; padding: 12px 16px; min-height: 44px;
+  text-decoration: none;
+}
+.ack-back:disabled { opacity: .5; cursor: default; }
 
 .ack-checkbox {
   width: 24px; height: 24px; border-radius: 50%; flex: none;
