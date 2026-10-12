@@ -437,7 +437,7 @@ export default function ManagerDashboard() {
           ) : (
             <>
               <div className="table-wrap">
-                <table>
+                <table className="stack-table">
                   <thead>
                     <tr>
                       <th>Guest</th><th>Phone</th><th>Host</th><th>Dates</th>
@@ -451,18 +451,18 @@ export default function ManagerDashboard() {
                         <tr key={v.id} className={st !== 'casual' ? `row-${st}` : ''}>
                           {editId === v.id ? (
                             <>
-                              <td><input type="text" value={editFields.full_name} onChange={(e) => setEditFields({ ...editFields, full_name: e.target.value })} style={{ width: 120 }} /></td>
-                              <td><input type="text" value={editFields.phone} onChange={(e) => setEditFields({ ...editFields, phone: e.target.value })} style={{ width: 110 }} /></td>
-                              <td>{v.host?.display_name}</td>
-                              <td className="small">
+                              <td data-label="Guest"><input type="text" value={editFields.full_name} onChange={(e) => setEditFields({ ...editFields, full_name: e.target.value })} style={{ width: 120 }} /></td>
+                              <td data-label="Phone"><input type="text" value={editFields.phone} onChange={(e) => setEditFields({ ...editFields, phone: e.target.value })} style={{ width: 110 }} /></td>
+                              <td data-label="Host">{v.host?.display_name}</td>
+                              <td className="small cell-dates" data-label="Dates">
                                 <input type="date" value={editFields.arrival_date} onChange={(e) => setEditFields({ ...editFields, arrival_date: e.target.value })} style={{ width: 130 }} />
-                                {' – '}
+                                <span className="date-sep"> – </span>
                                 <input type="date" value={editFields.expected_departure} min={editFields.arrival_date} onChange={(e) => setEditFields({ ...editFields, expected_departure: e.target.value })} style={{ width: 130 }} />
                               </td>
-                              <td>{nightsBetween(editFields.arrival_date, editFields.expected_departure)}</td>
-                              <td><Badge visitId={v.id} guestId={v.guest_id} /></td>
-                              <td className="small">{visitOrdinal[v.id] ? `${ordinal(visitOrdinal[v.id])} this month` : '—'}</td>
-                              <td>
+                              <td data-label="Nights">{nightsBetween(editFields.arrival_date, editFields.expected_departure)}</td>
+                              <td data-label="Status"><Badge visitId={v.id} guestId={v.guest_id} /></td>
+                              <td className="small" data-label="This month">{visitOrdinal[v.id] ? `${ordinal(visitOrdinal[v.id])} this month` : '—'}</td>
+                              <td className="cell-actions">
                                 <div className="row-actions">
                                   <button className="icon-btn" onClick={() => saveEdit(v.id)}>Save</button>
                                   <button className="icon-btn" onClick={() => setEditId(null)}>Cancel</button>
@@ -471,14 +471,14 @@ export default function ManagerDashboard() {
                             </>
                           ) : (
                             <>
-                              <td>{v.guests?.full_name}</td>
-                              <td>{v.guests?.phone}</td>
-                              <td>{v.host?.display_name}</td>
-                              <td className="small">{fmt(v.arrival_date)} – {fmt(v.expected_departure)}</td>
-                              <td>{v.nights}</td>
-                              <td><Badge visitId={v.id} guestId={v.guest_id} /></td>
-                              <td className="small">{visitOrdinal[v.id] ? `${ordinal(visitOrdinal[v.id])} this month` : '—'}</td>
-                              <td>
+                              <td className="cell-title">{v.guests?.full_name}</td>
+                              <td data-label="Phone">{v.guests?.phone}</td>
+                              <td data-label="Host">{v.host?.display_name}</td>
+                              <td className="small" data-label="Dates">{fmt(v.arrival_date)} – {fmt(v.expected_departure)}</td>
+                              <td data-label="Nights">{v.nights}</td>
+                              <td data-label="Status"><Badge visitId={v.id} guestId={v.guest_id} /></td>
+                              <td className="small" data-label="This month">{visitOrdinal[v.id] ? `${ordinal(visitOrdinal[v.id])} this month` : '—'}</td>
+                              <td className="cell-actions">
                                 <div className="row-actions">
                                   <button className="icon-btn" onClick={() => startEdit(v)}>Edit</button>
                                   <button className="icon-btn danger" onClick={() => closeOut(v.id)}>Close</button>
@@ -579,15 +579,15 @@ export default function ManagerDashboard() {
             </div>
           ) : (
             <div className="table-wrap">
-              <table>
+              <table className="stack-table">
                 <thead><tr><th>Guest</th><th>Phone</th><th>Host</th><th>Here until</th></tr></thead>
                 <tbody>
                   {inHouse.map((v) => (
                     <tr key={v.id}>
-                      <td>{v.guests?.full_name}</td>
-                      <td>{v.guests?.phone}</td>
-                      <td>{v.host?.display_name}</td>
-                      <td className="small">{fmt(v.expected_departure)}</td>
+                      <td className="cell-title">{v.guests?.full_name}</td>
+                      <td data-label="Phone">{v.guests?.phone}</td>
+                      <td data-label="Host">{v.host?.display_name}</td>
+                      <td className="small" data-label="Here until">{fmt(v.expected_departure)}</td>
                     </tr>
                   ))}
                 </tbody>
@@ -679,7 +679,7 @@ export default function ManagerDashboard() {
             </div>
           ) : (
             <div className="table-wrap">
-              <table>
+              <table className="stack-table">
                 <thead>
                   <tr>
                     <th>Host</th><th>Guest</th><th>Dates</th><th>Nights</th>
@@ -697,23 +697,23 @@ export default function ManagerDashboard() {
                       <tr key={b.id}>
                         {bookEditId === b.id ? (
                           <>
-                            <td>{bookEditFields.booker_name}</td>
-                            <td><input type="text" value={bookEditFields.guest_name} onChange={(e) => setBookEditFields({ ...bookEditFields, guest_name: e.target.value })} style={{ width: 120 }} /></td>
-                            <td className="small">
+                            <td data-label="Host">{bookEditFields.booker_name}</td>
+                            <td data-label="Guest"><input type="text" value={bookEditFields.guest_name} onChange={(e) => setBookEditFields({ ...bookEditFields, guest_name: e.target.value })} style={{ width: 120 }} /></td>
+                            <td className="small cell-dates" data-label="Dates">
                               <input type="date" value={bookEditFields.arrival_date} onChange={(e) => setBookEditFields({ ...bookEditFields, arrival_date: e.target.value })} style={{ width: 130 }} />
-                              {' – '}
+                              <span className="date-sep"> – </span>
                               <input type="date" value={bookEditFields.departure_date} min={bookEditFields.arrival_date} onChange={(e) => setBookEditFields({ ...bookEditFields, departure_date: e.target.value })} style={{ width: 130 }} />
                             </td>
-                            <td>{nightsBetween(bookEditFields.arrival_date, bookEditFields.departure_date)}</td>
-                            <td>
+                            <td data-label="Nights">{nightsBetween(bookEditFields.arrival_date, bookEditFields.departure_date)}</td>
+                            <td data-label="Status">
                               <select value={bookEditFields.status} onChange={(e) => setBookEditFields({ ...bookEditFields, status: e.target.value })} style={{ width: 120 }}>
                                 <option value="confirmed">Confirmed</option>
                                 <option value="cancelled">Cancelled</option>
                               </select>
                             </td>
-                            <td><input type="email" value={bookEditFields.booker_email} onChange={(e) => setBookEditFields({ ...bookEditFields, booker_email: e.target.value })} style={{ width: 150 }} /></td>
-                            <td className="small muted">{fmtTimestamp(b.created_at)}</td>
-                            <td>
+                            <td data-label="Email"><input type="email" value={bookEditFields.booker_email} onChange={(e) => setBookEditFields({ ...bookEditFields, booker_email: e.target.value })} style={{ width: 150 }} /></td>
+                            <td className="small muted" data-label="Submitted">{fmtTimestamp(b.created_at)}</td>
+                            <td className="cell-actions">
                               <div className="row-actions">
                                 <button className="icon-btn" onClick={() => saveBookEdit(b.id)}>Save</button>
                                 <button className="icon-btn" onClick={() => setBookEditId(null)}>Cancel</button>
@@ -722,23 +722,23 @@ export default function ManagerDashboard() {
                           </>
                         ) : (
                           <>
-                            <td>{b.host?.display_name || b.booker_name}</td>
-                            <td>{b.guest_name}</td>
-                            <td className="small">{fmt(b.arrival_date)} – {fmt(b.departure_date)}</td>
-                            <td>{b.nights}</td>
-                            <td>
+                            <td className="cell-title">{b.host?.display_name || b.booker_name}</td>
+                            <td data-label="Guest">{b.guest_name}</td>
+                            <td className="small" data-label="Dates">{fmt(b.arrival_date)} – {fmt(b.departure_date)}</td>
+                            <td data-label="Nights">{b.nights}</td>
+                            <td data-label="Status">
                               {b.status === 'cancelled'
                                 ? <span className="badge booking-cancelled">Cancelled</span>
                                 : <span className={`badge booking-${bookingStatus.toLowerCase()}`}>{bookingStatus}</span>
                               }
                             </td>
-                            <td className="small">{b.booker_email}</td>
-                            <td className="small muted">{fmtTimestamp(b.created_at)}</td>
-                            <td>
+                            <td className="small" data-label="Email">{b.booker_email}</td>
+                            <td className="small muted" data-label="Submitted">{fmtTimestamp(b.created_at)}</td>
+                            <td className="cell-actions">
                               <div className="row-actions">
-                                <button className="icon-btn" onClick={() => startBookEdit(b)} title="Edit booking">&#9998;</button>
+                                <button className="icon-btn" onClick={() => startBookEdit(b)} title="Edit booking">&#9998;<span className="btn-label">Edit</span></button>
                                 {b.status === 'confirmed' && (
-                                  <button className="icon-btn danger" onClick={() => cancelBooking(b.id)} title="Cancel booking">✕</button>
+                                  <button className="icon-btn danger" onClick={() => cancelBooking(b.id)} title="Cancel booking">✕<span className="btn-label">Cancel booking</span></button>
                                 )}
                               </div>
                             </td>
@@ -809,7 +809,7 @@ export default function ManagerDashboard() {
                 Showing {filteredHistory.length} of {history.length} past visit{history.length !== 1 ? 's' : ''}
               </p>
               <div className="table-wrap">
-                <table>
+                <table className="stack-table">
                   <thead>
                     <tr>
                       <th>Guest</th><th>Phone</th><th>Host</th><th>Stay</th>
@@ -821,17 +821,17 @@ export default function ManagerDashboard() {
                       <tr key={v.id}>
                         {histEditId === v.id ? (
                           <>
-                            <td><input type="text" value={histEditFields.full_name} onChange={(e) => setHistEditFields({ ...histEditFields, full_name: e.target.value })} style={{ width: 120 }} /></td>
-                            <td><input type="text" value={histEditFields.phone} onChange={(e) => setHistEditFields({ ...histEditFields, phone: e.target.value })} style={{ width: 110 }} /></td>
-                            <td>{v.host?.display_name}</td>
-                            <td className="small">
+                            <td data-label="Guest"><input type="text" value={histEditFields.full_name} onChange={(e) => setHistEditFields({ ...histEditFields, full_name: e.target.value })} style={{ width: 120 }} /></td>
+                            <td data-label="Phone"><input type="text" value={histEditFields.phone} onChange={(e) => setHistEditFields({ ...histEditFields, phone: e.target.value })} style={{ width: 110 }} /></td>
+                            <td data-label="Host">{v.host?.display_name}</td>
+                            <td className="small cell-dates" data-label="Stay">
                               <input type="date" value={histEditFields.arrival_date} onChange={(e) => setHistEditFields({ ...histEditFields, arrival_date: e.target.value })} style={{ width: 130 }} />
-                              {' – '}
+                              <span className="date-sep"> – </span>
                               <input type="date" value={histEditFields.expected_departure} min={histEditFields.arrival_date} onChange={(e) => setHistEditFields({ ...histEditFields, expected_departure: e.target.value })} style={{ width: 130 }} />
                             </td>
-                            <td>{nightsBetween(histEditFields.arrival_date, histEditFields.expected_departure)}</td>
-                            <td className="small muted">{fmtTimestamp(v.closed_at)}</td>
-                            <td>
+                            <td data-label="Nights">{nightsBetween(histEditFields.arrival_date, histEditFields.expected_departure)}</td>
+                            <td className="small muted" data-label="Closed">{fmtTimestamp(v.closed_at)}</td>
+                            <td className="cell-actions">
                               <div className="row-actions">
                                 <button className="icon-btn" onClick={() => saveHistEdit(v.id)}>Save</button>
                                 <button className="icon-btn" onClick={() => setHistEditId(null)}>Cancel</button>
@@ -840,17 +840,17 @@ export default function ManagerDashboard() {
                           </>
                         ) : (
                           <>
-                            <td>{v.guests?.full_name}</td>
-                            <td>{v.guests?.phone}</td>
-                            <td>{v.host?.display_name}</td>
-                            <td className="small">{fmtFull(v.arrival_date)} – {fmtFull(v.expected_departure)}</td>
-                            <td>{v.nights}</td>
-                            <td className="small muted">{fmtTimestamp(v.closed_at)}</td>
-                            <td>
+                            <td className="cell-title">{v.guests?.full_name}</td>
+                            <td data-label="Phone">{v.guests?.phone}</td>
+                            <td data-label="Host">{v.host?.display_name}</td>
+                            <td className="small" data-label="Stay">{fmtFull(v.arrival_date)} – {fmtFull(v.expected_departure)}</td>
+                            <td data-label="Nights">{v.nights}</td>
+                            <td className="small muted" data-label="Closed">{fmtTimestamp(v.closed_at)}</td>
+                            <td className="cell-actions">
                               <div className="row-actions">
-                                <button className="icon-btn" onClick={() => reopenVisit(v.id)} title="Reopen visit">↩</button>
-                                <button className="icon-btn" onClick={() => startHistEdit(v)} title="Edit visit">&#9998;</button>
-                                <button className="icon-btn danger" onClick={() => deleteVisit(v.id)} title="Delete visit">&#128465;</button>
+                                <button className="icon-btn" onClick={() => reopenVisit(v.id)} title="Reopen visit">↩<span className="btn-label">Reopen</span></button>
+                                <button className="icon-btn" onClick={() => startHistEdit(v)} title="Edit visit">&#9998;<span className="btn-label">Edit</span></button>
+                                <button className="icon-btn danger" onClick={() => deleteVisit(v.id)} title="Delete visit">&#128465;<span className="btn-label">Delete</span></button>
                               </div>
                             </td>
                           </>
