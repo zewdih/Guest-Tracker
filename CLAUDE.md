@@ -34,6 +34,7 @@ Variables: `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY` (public by design — R
 
 - Develop on `dev-zewdi`. Merging/pushing to `main` deploys to Netlify — only with explicit approval.
 - Database changes: add a migration in `supabase/migrations/`, mirror it in `supabase/schema.sql`, apply and test on **dev** first, back up prod, then apply to prod.
+- Most people use the app on their phones. Check every UI change at the standard phone widths — iPhone **320** (SE), **375**, **390**; Android **360** (Samsung Galaxy), **412** (Pixel / large Samsung) — plus a computer width. No sideways scrolling, tap targets ≥ 44px. Manager tables use `.stack-table` (cards on phones); give new table cells a `data-label`.
 - CI (`.github/workflows/ci.yml`) runs Build, Vitest, and pgTAP on pushes to `main`/`dev-zewdi` and PRs to `main`. It pins the Supabase CLI version (`version: 2.120.0`) — bump it deliberately; `latest` caused rate-limit failures.
 
 ## Architecture
