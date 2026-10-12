@@ -449,6 +449,10 @@ begin
     raise exception 'Check-out date cannot be before check-in date.';
   end if;
 
+  -- One booking at a time: two people booking the same instant are checked
+  -- in turn, so both can't see the dates as free. Released at commit.
+  perform pg_advisory_xact_lock(hashtext('guest_room_booking'));
+
   -- Check for date conflicts with existing confirmed bookings
   -- Must mirror blocked_dates() logic: ignore bookings whose linked visit is closed
   select exists (
