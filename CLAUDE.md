@@ -56,7 +56,7 @@ Single-page React app with React Router v6. No state management library — comp
 |-------|------|------|---------|
 | `/` | Welcome | None | Entry point: 3 main buttons (door form, lobby, guest room) + small links (Log a cleaning, HP/HM log in) |
 | `/add` | Intake | None | Door check-in for own-room guests. Review screen first; the visit is saved only on "Complete Check-In" |
-| `/calendar` | Calendar | None | Book the guest room. Confirm screen with clean-by date + 6-item cleanup checklist; saved only on "Confirm Booking" |
+| `/calendar` | Calendar | None | Book the guest room (tomorrow or later — no same-day self-booking; a signed-in manager can book today). Confirm screen with clean-by date + 6-item cleanup checklist; saved only on "Confirm Booking" |
 | `/clean` | Clean | None (booking email) | Log a guest-room cleaning: find ended stay by email, take photo, submit for HM review |
 | `/login` | Login | None | Email magic-link sign-in |
 | `/feed` | MemberFeed | None | Lobby board — guest counts, host names only; collapsible Guest room card (Ready / Turnover in progress / Awaiting check) |
@@ -74,7 +74,7 @@ Schema in `supabase/schema.sql` (full reference) and `supabase/migrations/` (inc
 
 **RPC functions** (SECURITY DEFINER unless noted):
 - Door / lobby: `submit_guest`, `house_roster` (active members only — use it instead of reading `profiles` inside functions, RLS blocks that), `lobby_feed`, `guest_month_status`
-- Guest room: `blocked_dates`, `submit_booking` (takes a transaction advisory lock so simultaneous bookings can't double-book), `lookup_bookings`, `cancel_booking`
+- Guest room: `blocked_dates`, `submit_booking` (rejects same-day arrivals unless `is_manager()`, using California time; takes a transaction advisory lock so simultaneous bookings can't double-book), `lookup_bookings`, `cancel_booking`
 - Cleaning log: `cleaning_bookings`, `can_upload_cleaning` (storage policy gate), `submit_cleaning`, `guest_room_cleanings` (lobby), `cleaning_overview` (managers only), `guest_room_stays` (internal helper, not callable by clients)
 - Helpers: `is_manager()` (used in RLS), `cleanup_old_visits`, `cleanup_old_logs`
 - Unused leftovers: `lookup_active_visit`, `confirm_checkout` (reference `visits.checkout_confirmed_at`, which doesn't exist on prod)
@@ -96,6 +96,7 @@ Computed in the `guest_status` view:
 
 ### Guest room cleaning flow
 
+0. House rule: no same-day self-booking — the guest room needs at least a day's notice so the last host can clean. The House Manager can override by booking while signed in. Enforced in both the Calendar (today greyed out) and `submit_booking`.
 1. Booking: host agrees to clean within 48 hours of departure or before the next booking, whichever comes first (`cleanupDeadline`).
 2. After the stay, host logs a cleaning at `/clean` with a photo → `submitted` (lobby: "Awaiting check" with date).
 3. House Manager approves (published on lobby with host name) or sends back (host re-cleans and resubmits; the app sends no notifications — the HM tells the host).

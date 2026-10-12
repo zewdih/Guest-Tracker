@@ -4,6 +4,7 @@
 import { useEffect, useState, useMemo } from 'react'
 import { Link } from 'react-router-dom'
 import { supabase } from '../supabaseClient'
+import { useAuth } from '../useAuth'
 import { today, fmt, nightsBetween, plusDays, fmtWeekday, cleanupDeadline } from '../utils/dateHelpers'
 import { CLEANUP_STEPS } from '../config'
 
@@ -23,6 +24,9 @@ function firstDayOfWeek(year, month) { return new Date(year, month, 1).getDay() 
 
 // ---- component ----
 export default function Calendar() {
+  // House rule: no same-day self-booking. The House Manager can still book today.
+  const { profile } = useAuth()
+  const isManager = profile?.role === 'manager'
   const [month, setMonth] = useState(() => {
     const now = new Date()
     return { year: now.getFullYear(), month: now.getMonth() }
@@ -122,6 +126,11 @@ export default function Calendar() {
     return ds && ds < today()
   }
 
+  // Today can't be picked (needs a day's notice) unless the House Manager is booking
+  function isSameDayLocked(day) {
+    return !isManager && dateStr(day) === today()
+  }
+
   function isBlocked(day) {
     const ds = dateStr(day)
     return ds && blockedDates.has(ds)
@@ -149,7 +158,7 @@ export default function Calendar() {
   }
 
   function handleDayClick(day) {
-    if (!day || isPast(day) || isBlocked(day)) return
+    if (!day || isPast(day) || isSameDayLocked(day) || isBlocked(day)) return
     const ds = dateStr(day)
 
     if (!range.start || (range.start && range.end)) {
@@ -360,6 +369,15 @@ export default function Calendar() {
           Only the House Manager/House President will see your info.
           Blocked dates are already taken.
         </p>
+        {isManager ? (
+          <div className="banner ok" style={{ marginTop: 12, marginBottom: 0 }}>
+            House Manager: you can book today for someone. Members need at least a day's notice.
+          </div>
+        ) : (
+          <p className="small" style={{ marginTop: 10, marginBottom: 0 }}>
+            📅 Book at least a day ahead. Need the room today? Ask the House Manager.
+          </p>
+        )}
       </div>
 
       {/* Calendar grid */}
@@ -379,7 +397,7 @@ export default function Calendar() {
           {grid.map((day, i) => {
             if (day === null) return <div key={`e${i}`} className="cal-day empty" />
             const ds = dateStr(day)
-            const past = isPast(day)
+            const past = isPast(day) || isSameDayLocked(day)
             const blocked = isBlocked(day)
             const classes = [
               'cal-day',

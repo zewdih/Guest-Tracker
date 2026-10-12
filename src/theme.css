@@ -575,6 +575,8 @@ tr.detail-row td { border-bottom: 1px solid var(--border); padding: 6px 12px; }
 .cal-day.empty:hover { background: transparent; border-color: transparent; }
 .cal-day.past { opacity: 0.35; cursor: default; }
 .cal-day.past:hover { background: transparent; border-color: transparent; }
+/* Today stays outlined even when it can't be booked (same-day rule) */
+.cal-day.past.today, .cal-day.past.today:hover { opacity: 0.55; border-color: var(--brand); }
 
 /* Calendar legend */
 .cal-legend {

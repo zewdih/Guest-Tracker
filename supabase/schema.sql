@@ -450,6 +450,15 @@ begin
     raise exception 'Check-out date cannot be before check-in date.';
   end if;
 
+  -- House rule: no same-day self-booking — the guest room needs at least a
+  -- day's notice so the last host has time to clean. The House Manager can
+  -- override (she's signed in, so is_manager() is true). "Today" is
+  -- California time, not the database's UTC clock.
+  if p_arrival_date <= (now() at time zone 'America/Los_Angeles')::date
+     and not public.is_manager() then
+    raise exception 'The guest room needs at least a day''s notice. Pick tomorrow or later, or ask the House Manager.';
+  end if;
+
   -- One booking at a time: two people booking the same instant are checked
   -- in turn, so both can't see the dates as free. Released at commit.
   perform pg_advisory_xact_lock(hashtext('guest_room_booking'));
@@ -497,8 +506,9 @@ begin
 
   return json_build_object(
     'ok', true,
+    'visit_id', v_visit_id,
+    'guest_id', v_guest_id,
     'nights', v_nights,
-    'guest_name', trim(p_guest_name),
     'host_name', v_host_name
   );
 end;
