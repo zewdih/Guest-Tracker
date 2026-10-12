@@ -718,6 +718,23 @@ tr.detail-row td { border-bottom: 1px solid var(--border); padding: 6px 12px; }
 .clean-card-caption { font-size: .8rem; margin-top: 4px; line-height: 1.3; }
 .clean-thumb { width: 64px; height: 48px; object-fit: cover; border-radius: 6px; display: block; }
 
+/* Manager Cleanings tab: table on computers, cards on phones */
+.clean-cards { display: none; }
+@media (max-width: 640px) {
+  .clean-table { display: none; }
+  .clean-cards { display: flex; flex-direction: column; gap: 12px; }
+}
+.clean-review-card {
+  border: 1px solid var(--border); border-radius: 12px; overflow: hidden; background: var(--surface);
+}
+.clean-review-card img {
+  display: block; width: 100%; aspect-ratio: 4 / 3; object-fit: cover; background: var(--surface-2);
+}
+.clean-review-body { padding: 12px 14px 14px; display: flex; flex-direction: column; gap: 6px; }
+.clean-review-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 6px; }
+.clean-review-actions .btn, .clean-review-undo { min-height: 44px; }
+.clean-review-undo { margin-top: 6px; width: 100%; }
+
 .ack-checkbox {
   width: 24px; height: 24px; border-radius: 50%; flex: none;
   display: flex; align-items: center; justify-content: center;

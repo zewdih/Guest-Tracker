@@ -112,6 +112,50 @@ export default function ManagerDashboard() {
     load()
   }
 
+  // Shared by the Cleanings table (computer) and cards (phone)
+  function cleaningStatus(c) {
+    const state = cleaningState(c)
+    return (
+      <>
+        {state === 'review' && <span className="badge extended">To review</span>}
+        {state === 'approved' && <span className="badge casual">Approved {fmtTimestamp(c.reviewed_at)}</span>}
+        {state === 'pending' && <span className="badge extended">Not cleaned yet</span>}
+        {state === 'overdue' && <span className="badge overstay">Overdue</span>}
+        {c.status === 'submitted' && (
+          <div className="small muted" style={{ marginTop: 4 }}>Submitted {fmtTimestamp(c.cleaned_at)}</div>
+        )}
+        {c.status === 'sent_back' && (
+          <div className="small muted" style={{ marginTop: 4 }}>Sent back {fmtTimestamp(c.reviewed_at)}</div>
+        )}
+      </>
+    )
+  }
+
+  function cleaningActions(c, large = false) {
+    const state = cleaningState(c)
+    if (state === 'review') {
+      return large ? (
+        <div className="clean-review-actions">
+          <button className="btn" onClick={() => reviewCleaning(c, 'approved')}>✅ Approve</button>
+          <button className="btn ghost" onClick={() => reviewCleaning(c, 'sent_back')}>↩️ Send back</button>
+        </div>
+      ) : (
+        <div className="row-actions">
+          <button className="icon-btn" onClick={() => reviewCleaning(c, 'approved')}>✅ Approve</button>
+          <button className="icon-btn danger" onClick={() => reviewCleaning(c, 'sent_back')}>↩️ Send back</button>
+        </div>
+      )
+    }
+    if (state === 'approved') {
+      return (
+        <button className={large ? 'btn ghost clean-review-undo' : 'icon-btn danger'} onClick={() => reviewCleaning(c, 'sent_back')}>
+          Send back
+        </button>
+      )
+    }
+    return null
+  }
+
   const inHouse = useMemo(
     () => visits.filter((v) => v.arrival_date <= today() && today() <= v.expected_departure),
     [visits]
@@ -569,32 +613,21 @@ export default function ManagerDashboard() {
               <p>No guest room stays ended in the last 30 days.</p>
             </div>
           ) : (
-            <div className="table-wrap">
-              <table>
-                <thead>
-                  <tr><th>Host</th><th>Guest</th><th>Stay</th><th>Clean by</th><th>Status</th><th>Photo</th><th></th></tr>
-                </thead>
-                <tbody>
-                  {sortedCleanings.map((c) => {
-                    const state = cleaningState(c)
-                    return (
+            <>
+              {/* Computer: table */}
+              <div className="table-wrap clean-table">
+                <table>
+                  <thead>
+                    <tr><th>Host</th><th>Guest</th><th>Stay</th><th>Clean by</th><th>Status</th><th>Photo</th><th></th></tr>
+                  </thead>
+                  <tbody>
+                    {sortedCleanings.map((c) => (
                       <tr key={c.booking_id}>
                         <td>{c.host_name}</td>
                         <td>{c.guest_name}</td>
                         <td className="small">{fmt(c.arrival_date)} → {fmt(c.end_date)}</td>
                         <td className="small">{fmt(c.clean_by)}</td>
-                        <td>
-                          {state === 'review' && <span className="badge extended">To review</span>}
-                          {state === 'approved' && <span className="badge casual">Approved {fmtTimestamp(c.reviewed_at)}</span>}
-                          {state === 'pending' && <span className="badge extended">Not cleaned yet</span>}
-                          {state === 'overdue' && <span className="badge overstay">Overdue</span>}
-                          {c.cleaned_at && state !== 'approved' && c.status === 'submitted' && (
-                            <div className="small muted" style={{ marginTop: 4 }}>Submitted {fmtTimestamp(c.cleaned_at)}</div>
-                          )}
-                          {c.status === 'sent_back' && (
-                            <div className="small muted" style={{ marginTop: 4 }}>Sent back {fmtTimestamp(c.reviewed_at)}</div>
-                          )}
-                        </td>
+                        <td>{cleaningStatus(c)}</td>
                         <td>
                           {c.photo_path && (
                             <a href={cleaningPhotoUrl(supabase, c.photo_path)} target="_blank" rel="noreferrer">
@@ -602,23 +635,34 @@ export default function ManagerDashboard() {
                             </a>
                           )}
                         </td>
-                        <td>
-                          {state === 'review' && (
-                            <div className="row-actions">
-                              <button className="icon-btn" onClick={() => reviewCleaning(c, 'approved')}>✅ Approve</button>
-                              <button className="icon-btn danger" onClick={() => reviewCleaning(c, 'sent_back')}>↩️ Send back</button>
-                            </div>
-                          )}
-                          {state === 'approved' && (
-                            <button className="icon-btn danger" onClick={() => reviewCleaning(c, 'sent_back')}>Send back</button>
-                          )}
-                        </td>
+                        <td>{cleaningActions(c)}</td>
                       </tr>
-                    )
-                  })}
-                </tbody>
-              </table>
-            </div>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+
+              {/* Phone: one card per stay, buttons always in reach */}
+              <div className="clean-cards">
+                {sortedCleanings.map((c) => (
+                  <div className="clean-review-card" key={c.booking_id}>
+                    {c.photo_path && (
+                      <a href={cleaningPhotoUrl(supabase, c.photo_path)} target="_blank" rel="noreferrer">
+                        <img src={cleaningPhotoUrl(supabase, c.photo_path)} alt={`Cleaning by ${c.host_name}`} loading="lazy" />
+                      </a>
+                    )}
+                    <div className="clean-review-body">
+                      <div><strong>{c.host_name}</strong> <span className="muted small">· guest {c.guest_name}</span></div>
+                      <div className="small muted">
+                        Stay {fmt(c.arrival_date)} → {fmt(c.end_date)} · clean by {fmt(c.clean_by)}
+                      </div>
+                      <div>{cleaningStatus(c)}</div>
+                      {cleaningActions(c, true)}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </>
           )}
         </div>
       )}
