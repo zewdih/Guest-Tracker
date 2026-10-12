@@ -275,9 +275,13 @@ export default function Calendar() {
     // The next booking starts on the first taken date within 2 days after departure
     const nextArrival = [1, 2].map((n) => plusDays(range.end, n)).find((d) => blockedDates.has(d))
     const deadline = cleanupDeadline(range.end, nextArrival)
+    // The House Manager books on a member's behalf: the host (not her) is the one
+    // agreeing to clean, so she sees the terms to pass on instead of checkboxes.
+    const hostName = roster.find((m) => m.id === form.host_id)?.display_name || 'The host'
     const checkedCount = ackChecks.filter(Boolean).length
-    const allAcked = checkedCount === CLEANUP_STEPS.length
+    const allAcked = isManager || checkedCount === CLEANUP_STEPS.length
     const confirmLabel = status.state === 'saving' ? 'Booking…'
+      : isManager ? `✅ Confirm booking for ${hostName}`
       : allAcked ? '✅ Confirm Booking'
       : checkedCount === 0 ? `Tick all ${CLEANUP_STEPS.length} to confirm`
       : `${checkedCount} of ${CLEANUP_STEPS.length} checked`
@@ -294,7 +298,7 @@ export default function Calendar() {
         {deadline.tight ? (
           <div className="banner warn">
             ⚠️ Next guest arrives {fmtWeekday(deadline.cleanBy)},{' '}
-            {deadline.daysAfter === 1 ? 'the day after' : 'two days after'} your guest leaves.
+            {deadline.daysAfter === 1 ? 'the day after' : 'two days after'} {isManager ? 'the' : 'your'} guest leaves.
             The room must be clean before they arrive.
           </div>
         ) : (
@@ -304,15 +308,33 @@ export default function Calendar() {
         <hr className="ack-divider" />
 
         {/* Guest room cleanup */}
-        <div className="ack-cleanup-intro">
-          <p className="ack-cleanup-title">Guest room cleanup</p>
-          <p>
-            I agree to have the following items cleaned in the room within 48 hours of my
-            guest's departure, or before the next booking, whichever comes first.
-          </p>
-        </div>
+        {isManager ? (
+          <>
+            <div className="ack-cleanup-intro">
+              <p className="ack-cleanup-title">Guest room cleanup</p>
+              <p>
+                {hostName} agrees to have these items cleaned in the room within 48 hours of the
+                guest's departure, or before the next booking, whichever comes first. Let them know.
+              </p>
+            </div>
+            {CLEANUP_STEPS.map((step, i) => (
+              <div key={i} className="ack-item">
+                <span className="ack-item-icon" aria-hidden="true">{step.icon}</span>
+                <span>{step.text}</span>
+              </div>
+            ))}
+          </>
+        ) : (
+          <div className="ack-cleanup-intro">
+            <p className="ack-cleanup-title">Guest room cleanup</p>
+            <p>
+              I agree to have the following items cleaned in the room within 48 hours of my
+              guest's departure, or before the next booking, whichever comes first.
+            </p>
+          </div>
+        )}
 
-        {CLEANUP_STEPS.map((step, i) => (
+        {!isManager && CLEANUP_STEPS.map((step, i) => (
           <label key={i} className={`ack-check ${ackChecks[i] ? 'checked' : ''}`} onClick={() => toggleAck(i)}>
             <span className={`ack-checkbox ${ackChecks[i] ? 'done' : ''}`}>
               {ackChecks[i] ? '✓' : ''}

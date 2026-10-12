@@ -113,6 +113,9 @@
 
 html, body, #root { height: 100%; }
 
+/* Safety net against sideways scrolling. Set on body only, so it applies to the window and
+   normal page scrolling keeps working (on html + body, Safari makes the body its own scroll box). */
+body { overflow-x: hidden; }
 body {
   margin: 0;
   background: var(--bg);
@@ -152,6 +155,15 @@ a:hover { color: var(--accent); }
 .back-btn:hover { background: var(--surface-2); border-color: var(--brand); color: var(--text); }
 .back-btn:active { transform: scale(0.97); }
 .topbar-actions { display: flex; align-items: center; gap: 8px; }
+.topbar a, .topbar button { white-space: nowrap; }
+/* Smallest phones (iPhone SE, 320px): tighten the top bar so nothing wraps */
+@media (max-width: 380px) {
+  .topbar { gap: 6px; }
+  .topbar > div, .topbar-actions { gap: 6px !important; }
+  .back-btn, .brand { padding: 6px 10px; font-size: .92rem; gap: 6px; }
+  .brand .dot { width: 12px; height: 12px; }
+  .topbar .icon-btn { padding: 8px 9px; font-size: .92rem; }
+}
 
 /* ---- Cards ---- */
 .card {
@@ -199,13 +211,15 @@ a:hover { color: var(--accent); }
 
 /* ---- Forms ---- */
 label { display: block; font-weight: 600; margin: 14px 0 6px; font-size: .92rem; }
-input, select {
-  width: 100%; padding: 12px 14px; font-size: 1rem;
+input, select, textarea {
+  width: 100%; max-width: 100%; min-width: 0; padding: 12px 14px; font-size: 16px;
   border: 1px solid var(--border); border-radius: 10px;
   background: var(--surface-2); color: var(--text);
   transition: border-color 0.15s;
 }
 input:focus, select:focus { outline: 2px solid var(--accent); outline-offset: 1px; }
+input[type="date"] { -webkit-appearance: none; appearance: none; min-height: 44px; }
+input[type="date"]::-webkit-date-and-time-value { text-align: left; }
 
 .btn {
   display: inline-flex; align-items: center; justify-content: center; gap: 8px;
@@ -563,7 +577,7 @@ tr.detail-row td { border-bottom: 1px solid var(--border); padding: 6px 12px; }
 }
 .cal-nav h3 { margin: 0; font-size: 1.05rem; }
 .cal-grid {
-  display: grid; grid-template-columns: repeat(7, 1fr); gap: 2px;
+  display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 2px;
 }
 .cal-header {
   text-align: center; font-size: .72rem; font-weight: 700;
@@ -573,7 +587,7 @@ tr.detail-row td { border-bottom: 1px solid var(--border); padding: 6px 12px; }
   aspect-ratio: 1; display: flex; flex-direction: column;
   align-items: center; justify-content: center;
   border-radius: 10px; cursor: pointer; font-size: .88rem; font-weight: 600;
-  border: 1px solid transparent;
+  border: 1px solid transparent; min-width: 0;
   transition: background 0.12s, border-color 0.12s;
   position: relative;
 }
@@ -723,12 +737,33 @@ tr.detail-row td { border-bottom: 1px solid var(--border); padding: 6px 12px; }
 }
 .ack-check-icon { font-size: 1.1rem; flex: none; }
 
-/* Secondary "go back" link under the confirm button — padded for thumbs */
-.ack-back {
-  display: block; margin: 6px auto 0; padding: 12px 16px; min-height: 44px;
-  text-decoration: none;
+/* Read-only cleanup items (House Manager's confirm screen): same separated
+   rows as the member checklist, with the item's icon instead of a checkbox */
+.ack-item {
+  display: flex; align-items: center; gap: 12px;
+  padding: 12px 14px; margin: 0 0 8px; border-radius: 10px;
+  background: var(--surface-2); border: 1px solid var(--border);
+  font-size: .88rem; line-height: 1.35;
 }
-.ack-back:disabled { opacity: .5; cursor: default; }
+.ack-item:last-of-type { margin-bottom: 0; }
+.ack-item-icon {
+  width: 28px; height: 28px; flex: none; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  background: var(--surface); border: 1px solid var(--border); font-size: .95rem;
+}
+
+/* Secondary "go back" link under the confirm button — padded for thumbs */
+/* "← Edit … details" / "← Back": an outlined pill, centered, quieter than the main button */
+.link-btn.ack-back {
+  display: flex; align-items: center; justify-content: center; gap: 6px;
+  margin: 12px auto 0; padding: 0 20px; min-height: 44px;
+  border: 1px solid var(--border); border-radius: 999px; background: var(--surface);
+  color: var(--text); font-weight: 600; text-decoration: none;
+  transition: border-color 0.15s, color 0.15s;
+}
+.link-btn.ack-back:hover { border-color: var(--brand); color: var(--brand); }
+.link-btn.ack-back:active { transform: scale(0.98); }
+.link-btn.ack-back:disabled { opacity: .5; cursor: default; transform: none; }
 
 /* ---- Cleaning log ---- */
 .clean-photo-btn {
@@ -860,7 +895,8 @@ tr.detail-row td { border-bottom: 1px solid var(--border); padding: 6px 12px; }
   .entry-icon { width: 38px; height: 38px; font-size: 1.1rem; }
 
   /* Forms: slightly more compact */
-  input, select { padding: 10px 12px; font-size: .95rem; }
+  /* 16px minimum: iPhone Safari auto-zooms into smaller text boxes and stays zoomed */
+  input, select, textarea { padding: 10px 12px; font-size: 16px; }
   .btn { padding: 12px 16px; font-size: .95rem; }
 
   /* Stats row */
@@ -879,3 +915,7 @@ tr.detail-row td { border-bottom: 1px solid var(--border); padding: 6px 12px; }
   .stats { gap: 8px; }
   .stat .num { font-size: 1.4rem; }
 }
+
+/* Long unbroken text (emails, phone numbers) wraps instead of widening the page */
+td, .ack-header-detail, .banner { overflow-wrap: anywhere; }
+img { max-width: 100%; }
