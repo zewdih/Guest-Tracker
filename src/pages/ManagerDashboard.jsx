@@ -42,6 +42,11 @@ export default function ManagerDashboard() {
   const [tab, setTab] = useState('registry')
   // Long lists show the first few rows, then "Show all" (keeps phone screens short)
   const [showAll, setShowAll] = useState({})
+  // On phones each card folds to a one-line summary; tap the name to open it
+  const [openRows, setOpenRows] = useState({})
+  const toggleRow = (key) => setOpenRows((o) => ({ ...o, [key]: !o[key] }))
+  const rowClass = (key, extra = '', forceOpen = false) =>
+    [extra, (forceOpen || openRows[key]) && 'open'].filter(Boolean).join(' ')
   const preview = (key, list) => (showAll[key] ? list : list.slice(0, LIST_PREVIEW_COUNT))
   function showMore(key, total, noun = '') {
     if (total <= LIST_PREVIEW_COUNT) return null
@@ -422,7 +427,7 @@ export default function ManagerDashboard() {
 
   return (
     <>
-      <div className="card">
+      <div className="card mgr-dashboard">
         <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
           <div>
             <h2>House Manager/House President Dashboard</h2>
@@ -481,7 +486,7 @@ export default function ManagerDashboard() {
                     {preview('registry', visits).map((v) => {
                       const st = visitStatus[v.id] || 'casual'
                       return (
-                        <tr key={v.id} className={st !== 'casual' ? `row-${st}` : ''}>
+                        <tr key={v.id} className={rowClass('reg-' + v.id, st !== 'casual' ? `row-${st}` : '', editId === v.id)}>
                           {editId === v.id ? (
                             <>
                               <td data-label="Guest"><input type="text" value={editFields.full_name} onChange={(e) => setEditFields({ ...editFields, full_name: e.target.value })} style={{ width: 120 }} /></td>
@@ -504,7 +509,10 @@ export default function ManagerDashboard() {
                             </>
                           ) : (
                             <>
-                              <td className="cell-title">{v.guests?.full_name}</td>
+                              <td className="cell-title" onClick={() => toggleRow('reg-' + v.id)}>{v.guests?.full_name}</td>
+                              <td className="cell-summary">
+                                {v.host?.display_name} · {fmt(v.arrival_date)} – {fmt(v.expected_departure)} <Badge visitId={v.id} guestId={v.guest_id} />
+                              </td>
                               <td data-label="Phone">{v.guests?.phone}</td>
                               <td data-label="Host">{v.host?.display_name}</td>
                               <td className="small" data-label="Dates">{fmt(v.arrival_date)} – {fmt(v.expected_departure)}</td>
@@ -615,8 +623,9 @@ export default function ManagerDashboard() {
                 <thead><tr><th>Guest</th><th>Phone</th><th>Host</th><th>Here until</th></tr></thead>
                 <tbody>
                   {preview('roster', inHouse).map((v) => (
-                    <tr key={v.id}>
-                      <td className="cell-title">{v.guests?.full_name}</td>
+                    <tr key={v.id} className={rowClass('ros-' + v.id)}>
+                      <td className="cell-title" onClick={() => toggleRow('ros-' + v.id)}>{v.guests?.full_name}</td>
+                      <td className="cell-summary">{v.host?.display_name} · here until {fmt(v.expected_departure)}</td>
                       <td data-label="Phone">{v.guests?.phone}</td>
                       <td data-label="Host">{v.host?.display_name}</td>
                       <td className="small" data-label="Here until">{fmt(v.expected_departure)}</td>
@@ -678,20 +687,25 @@ export default function ManagerDashboard() {
               {/* Phone: one card per stay, buttons always in reach */}
               <div className="clean-cards">
                 {preview('cleanings', sortedCleanings).map((c) => (
-                  <div className="clean-review-card" key={c.booking_id}>
-                    {c.photo_path && (
-                      <a href={cleaningPhotoUrl(supabase, c.photo_path)} target="_blank" rel="noreferrer">
-                        <img src={cleaningPhotoUrl(supabase, c.photo_path)} alt={`Cleaning by ${c.host_name}`} loading="lazy" />
-                      </a>
+                  <div className={`clean-review-card ${openRows['cl-' + c.booking_id] ? 'open' : ''}`} key={c.booking_id}>
+                    <button className="clean-review-head" onClick={() => toggleRow('cl-' + c.booking_id)}
+                      aria-expanded={!!openRows['cl-' + c.booking_id]}>
+                      <span><strong>{c.host_name}</strong> <span className="muted small">· {fmt(c.arrival_date)} → {fmt(c.end_date)}</span></span>
+                      <span className="clean-review-head-status">{cleaningStatus(c)}</span>
+                    </button>
+                    {openRows['cl-' + c.booking_id] && (
+                      <>
+                        {c.photo_path && (
+                          <a href={cleaningPhotoUrl(supabase, c.photo_path)} target="_blank" rel="noreferrer">
+                            <img src={cleaningPhotoUrl(supabase, c.photo_path)} alt={`Cleaning by ${c.host_name}`} loading="lazy" />
+                          </a>
+                        )}
+                        <div className="clean-review-body">
+                          <div className="small muted">Guest {c.guest_name} · clean by {fmt(c.clean_by)}</div>
+                          {cleaningActions(c, true)}
+                        </div>
+                      </>
                     )}
-                    <div className="clean-review-body">
-                      <div><strong>{c.host_name}</strong> <span className="muted small">· guest {c.guest_name}</span></div>
-                      <div className="small muted">
-                        Stay {fmt(c.arrival_date)} → {fmt(c.end_date)} · clean by {fmt(c.clean_by)}
-                      </div>
-                      <div>{cleaningStatus(c)}</div>
-                      {cleaningActions(c, true)}
-                    </div>
                   </div>
                 ))}
               </div>
@@ -728,7 +742,7 @@ export default function ManagerDashboard() {
                       : t <= b.departure_date ? 'Active'
                       : 'Past'
                     return (
-                      <tr key={b.id}>
+                      <tr key={b.id} className={rowClass('bk-' + b.id, '', bookEditId === b.id)}>
                         {bookEditId === b.id ? (
                           <>
                             <td data-label="Host">{bookEditFields.booker_name}</td>
@@ -756,7 +770,13 @@ export default function ManagerDashboard() {
                           </>
                         ) : (
                           <>
-                            <td className="cell-title">{b.host?.display_name || b.booker_name}</td>
+                            <td className="cell-title" onClick={() => toggleRow('bk-' + b.id)}>{b.host?.display_name || b.booker_name}</td>
+                            <td className="cell-summary">
+                              {fmt(b.arrival_date)} – {fmt(b.departure_date)}{' '}
+                              {b.status === 'cancelled'
+                                ? <span className="badge booking-cancelled">Cancelled</span>
+                                : <span className={`badge booking-${bookingStatus.toLowerCase()}`}>{bookingStatus}</span>}
+                            </td>
                             <td data-label="Guest">{b.guest_name}</td>
                             <td className="small" data-label="Dates">{fmt(b.arrival_date)} – {fmt(b.departure_date)}</td>
                             <td data-label="Nights">{b.nights}</td>
@@ -853,7 +873,7 @@ export default function ManagerDashboard() {
                   </thead>
                   <tbody>
                     {preview('history', filteredHistory).map((v) => (
-                      <tr key={v.id}>
+                      <tr key={v.id} className={rowClass('his-' + v.id, '', histEditId === v.id)}>
                         {histEditId === v.id ? (
                           <>
                             <td data-label="Guest"><input type="text" value={histEditFields.full_name} onChange={(e) => setHistEditFields({ ...histEditFields, full_name: e.target.value })} style={{ width: 120 }} /></td>
@@ -875,7 +895,8 @@ export default function ManagerDashboard() {
                           </>
                         ) : (
                           <>
-                            <td className="cell-title">{v.guests?.full_name}</td>
+                            <td className="cell-title" onClick={() => toggleRow('his-' + v.id)}>{v.guests?.full_name}</td>
+                            <td className="cell-summary">{v.host?.display_name} · {fmt(v.arrival_date)} – {fmt(v.expected_departure)}</td>
                             <td data-label="Phone">{v.guests?.phone}</td>
                             <td data-label="Host">{v.host?.display_name}</td>
                             <td className="small" data-label="Stay">{fmtFull(v.arrival_date)} – {fmtFull(v.expected_departure)}</td>

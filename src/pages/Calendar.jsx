@@ -400,11 +400,11 @@ export default function Calendar() {
         </p>
         {isManager ? (
           <div className="banner ok" style={{ marginTop: 12, marginBottom: 0 }}>
-            House Manager: you can book today for a member.
+            House President/House Manager: you can book today for a member.
           </div>
         ) : (
           <p className="small" style={{ marginTop: 10, marginBottom: 0 }}>
-            📅 Book at least a day ahead. Need the room today? Ask the House Manager.
+            📅 Book at least a day ahead. Need the room today? Ask the House President/House Manager.
           </p>
         )}
       </div>

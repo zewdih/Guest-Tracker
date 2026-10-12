@@ -34,7 +34,7 @@ Variables: `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY` (public by design — R
 
 - Develop on `dev-zewdi`. Merging/pushing to `main` deploys to Netlify — only with explicit approval.
 - Database changes: add a migration in `supabase/migrations/`, mirror it in `supabase/schema.sql`, apply and test on **dev** first, back up prod, then apply to prod.
-- Most people use the app on their phones. Check every UI change at the standard phone widths — iPhone **320** (SE), **375**, **390**; Android **360** (Samsung Galaxy), **412** (Pixel / large Samsung) — plus a computer width. No sideways scrolling, tap targets ≥ 44px. Manager tables use `.stack-table` (cards on phones); give new table cells a `data-label`.
+- Most people use the app on their phones. Check every UI change at the standard phone widths — iPhone **320** (SE), **375**, **390**; Android **360** (Samsung Galaxy), **412** (Pixel / large Samsung) — plus a computer width. No sideways scrolling, tap targets ≥ 44px. Test iPhones in WebKit (Safari) too, not just Chrome. Form inputs stay ≥ 16px (smaller makes iPhone Safari zoom). Manager tables use `.stack-table`: under 900px each row is a folding card — a `.cell-title` (tap to open), a `.cell-summary` one-liner, and labeled cells (`data-label`); lists show `LIST_PREVIEW_COUNT` rows then "Show all". The manager dashboard is wider (1180px) on computers so its tables fit.
 - CI (`.github/workflows/ci.yml`) runs Build, Vitest, and pgTAP on pushes to `main`/`dev-zewdi` and PRs to `main`. It pins the Supabase CLI version (`version: 2.120.0`) — bump it deliberately; `latest` caused rate-limit failures.
 
 ## Architecture

@@ -127,6 +127,7 @@ body {
 }
 
 .app { max-width: 760px; margin: 0 auto; padding: 0 18px 64px; }
+.app:has(.mgr-dashboard) { max-width: 1180px; }
 
 /* ---- Links ---- */
 a { color: var(--brand); }
@@ -305,10 +306,11 @@ tr.detail-row td { border-bottom: 1px solid var(--border); padding: 6px 12px; }
   .tabs { justify-content: center; }
 }
 
-/* Manager tables: on phones each row becomes a card with labeled lines,
-   so nothing falls off the right edge. Computers keep the normal table. */
+/* Manager tables: under 900px each row becomes a card with labeled lines,
+   so nothing falls off the right edge. Wide screens keep the normal table. */
 .btn-label { display: none; }
-@media (max-width: 640px) {
+.stack-table td.cell-summary { display: none; }
+@media (max-width: 900px) {
   .table-wrap:has(.stack-table) { overflow-x: visible; }
   .stack-table, .stack-table tbody, .stack-table tr, .stack-table td { display: block; width: 100%; }
   .stack-table thead { display: none; }
@@ -327,6 +329,19 @@ tr.detail-row td { border-bottom: 1px solid var(--border); padding: 6px 12px; }
   }
   .stack-table td.cell-title { font-size: 1.02rem; font-weight: 700; text-align: left; padding-top: 2px; }
   .stack-table td.cell-title::before, .stack-table td.cell-actions::before { content: none; }
+  /* Folded card: name + one-line summary; tap the name to open the details */
+  .stack-table td.cell-title { cursor: pointer; border-bottom: 0; }
+  .stack-table td.cell-title::after { content: '▾'; color: var(--text-soft); font-size: .9rem; transition: transform .15s; }
+  .stack-table tr.open td.cell-title::after { transform: rotate(180deg); }
+  .stack-table td.cell-summary {
+    display: flex; flex-wrap: wrap; justify-content: flex-start; align-items: center; gap: 6px;
+    text-align: left; color: var(--text-soft); font-size: .86rem; border-bottom: 0; padding-top: 0;
+  }
+  .stack-table td.cell-summary::before { content: none; }
+  .stack-table tr.open td.cell-summary { display: none; }
+  .stack-table tr:not(.open) td:not(.cell-title):not(.cell-summary) { display: none; }
+  .stack-table tr.open td.cell-title { border-bottom: 1px solid var(--border); }
+  .stack-table tr { padding: 8px 14px; }
   .stack-table td.cell-actions { border-bottom: 0; padding: 10px 0 2px; }
   .stack-table .row-actions { display: flex; gap: 8px; width: 100%; }
   .stack-table .row-actions .icon-btn {
@@ -811,10 +826,19 @@ tr.detail-row td { border-bottom: 1px solid var(--border); padding: 6px 12px; }
 
 /* Manager Cleanings tab: table on computers, cards on phones */
 .clean-cards { display: none; }
-@media (max-width: 640px) {
+@media (max-width: 900px) {
   .clean-table { display: none; }
   .clean-cards { display: flex; flex-direction: column; gap: 12px; }
 }
+.clean-review-head {
+  display: flex; align-items: center; justify-content: space-between; gap: 10px; width: 100%;
+  padding: 12px 14px; min-height: 52px; background: none; border: 0; cursor: pointer;
+  font: inherit; color: inherit; text-align: left;
+}
+.clean-review-head::after { content: '▾'; color: var(--text-soft); flex: none; transition: transform .15s; }
+.clean-review-card.open .clean-review-head::after { transform: rotate(180deg); }
+.clean-review-card.open .clean-review-head { border-bottom: 1px solid var(--border); }
+.clean-review-head-status { margin-left: auto; text-align: right; }
 .clean-review-card {
   border: 1px solid var(--border); border-radius: 12px; overflow: hidden; background: var(--surface);
 }
