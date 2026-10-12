@@ -820,7 +820,10 @@ as $$
            select min(n.arrival_date) from public.bookings n
            where n.status = 'confirmed' and n.id <> s.id and n.arrival_date >= s.end_date
          ), s.end_date + 2)) as clean_by
-  from stays s;
+  from stays s
+  -- Cleaning log tracking start: stays that ended before launch were never
+  -- asked to log a cleaning, so they must not show as overdue.
+  where s.end_date >= date '2026-10-11';
 $$;
 
 revoke execute on function public.guest_room_stays() from public, anon, authenticated;
