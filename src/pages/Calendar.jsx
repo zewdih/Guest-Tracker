@@ -347,10 +347,17 @@ export default function Calendar() {
         <p className="small muted" style={{ marginTop: 8 }}>
           Only the House Manager/House President will see your booking details.
         </p>
-        <p className="small muted" style={{ marginTop: 8 }}>
-          After your guest leaves, tap <Link to="/clean">Log a cleaning</Link> on the home
-          screen and snap a photo of the clean room.
-        </p>
+        {isManager ? (
+          <p className="small muted" style={{ marginTop: 8 }}>
+            Let the host know: after their guest leaves, they tap <Link to="/clean">Log a cleaning</Link> on
+            the home screen and use the email you entered.
+          </p>
+        ) : (
+          <p className="small muted" style={{ marginTop: 8 }}>
+            After your guest leaves, tap <Link to="/clean">Log a cleaning</Link> on the home
+            screen and snap a photo of the clean room.
+          </p>
+        )}
         <button className="btn full" onClick={addAnother} style={{ marginTop: 14 }}>Book another stay</button>
         <p className="small muted" style={{ marginTop: 12 }}>
           All done? Feel free to close this page.
@@ -448,21 +455,31 @@ export default function Calendar() {
           <form onSubmit={handleBook}>
             {status.state === 'error' && <div className="banner error">{status.msg}</div>}
 
-            <label htmlFor="host">Your name</label>
+            {/* The House Manager books on a member's behalf: the form asks for the host's
+                details, because the host's email is how they log the cleaning and cancel. */}
+            {isManager && (
+              <div className="banner warn" style={{ marginTop: 12 }}>
+                Booking for a member? Enter <strong>their</strong> details below, not yours.
+                They'll use this email to log the cleaning and to cancel.
+              </div>
+            )}
+
+            <label htmlFor="host">{isManager ? 'Host (who it\'s for)' : 'Your name'}</label>
             <select id="host" required value={form.host_id} onChange={set('host_id')}>
-              <option value="" disabled>Pick your name…</option>
+              <option value="" disabled>{isManager ? 'Pick the member…' : 'Pick your name…'}</option>
               {roster.map((m) => (
                 <option key={m.id} value={m.id}>{m.display_name}</option>
               ))}
             </select>
 
-            <label htmlFor="phone">Your phone number</label>
+            <label htmlFor="phone">{isManager ? "Host's phone number" : 'Your phone number'}</label>
             <input id="phone" required type="tel" value={form.phone} onChange={set('phone')}
-              placeholder="(510) 555-1234" inputMode="tel" />
+              placeholder="(510) 555-1234" inputMode="tel" autoComplete={isManager ? 'off' : 'tel'} />
 
-            <label htmlFor="email">Your email</label>
+            <label htmlFor="email">{isManager ? "Host's email" : 'Your email'}</label>
             <input id="email" required type="email" value={form.email} onChange={set('email')}
-              placeholder="you@example.com" autoComplete="email" />
+              placeholder={isManager ? 'member@example.com' : 'you@example.com'}
+              autoComplete={isManager ? 'off' : 'email'} />
 
             <label htmlFor="guestname">Guest's name</label>
             <input id="guestname" required value={form.guest_name} onChange={set('guest_name')}
@@ -473,7 +490,9 @@ export default function Calendar() {
               placeholder="(510) 555-1234" inputMode="tel" />
 
             <p className="small muted" style={{ marginTop: 8 }}>
-              Your details are private to the House Manager/House President.
+              {isManager
+                ? "The host's details are private to the House Manager/House President."
+                : 'Your details are private to the House Manager/House President.'}
             </p>
 
             <button className="btn full" type="submit" style={{ marginTop: 10 }}>

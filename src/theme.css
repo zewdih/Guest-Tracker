@@ -274,6 +274,9 @@ tbody tr:hover { background: var(--row-hover); }
 tr.detail-row { background: var(--surface-2); }
 tr.detail-row td { border-bottom: 1px solid var(--border); padding: 6px 12px; }
 
+/* Manager dashboard header buttons — wrap onto their own line on phones */
+.dash-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+
 /* Manager tables: on phones each row becomes a card with labeled lines,
    so nothing falls off the right edge. Computers keep the normal table. */
 .btn-label { display: none; }

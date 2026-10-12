@@ -398,7 +398,10 @@ export default function ManagerDashboard() {
             <h2>House Manager/House President Dashboard</h2>
             <p className="muted">The full registry — visible only to the House Manager/House President.</p>
           </div>
-          <Link to="/add" className="btn">+ Add a guest</Link>
+          <div className="dash-actions">
+            <Link to="/add" className="btn">+ Add a guest</Link>
+            <Link to="/calendar" className="btn ghost">📅 Book the guest room</Link>
+          </div>
         </div>
         <div className="stats" style={{ marginTop: 12 }}>
           <div className="stat"><div className="num">{inHouse.length}</div><div className="label">in the house now</div></div>
