@@ -3,7 +3,7 @@
 --  "Does each function do what it's supposed to?"
 -- =====================================================================
 begin;
-select plan(13);
+select plan(17);
 
 -- ----- Functions exist -----
 
@@ -17,6 +17,10 @@ select has_function('public', 'cancel_booking', 'cancel_booking() exists');
 select has_function('public', 'lookup_active_visit', 'lookup_active_visit() exists');
 select has_function('public', 'confirm_checkout', 'confirm_checkout() exists');
 select has_function('public', 'guest_month_status', 'guest_month_status() exists');
+select has_function('public', 'cleaning_bookings', 'cleaning_bookings() exists');
+select has_function('public', 'submit_cleaning', 'submit_cleaning() exists');
+select has_function('public', 'guest_room_cleanings', 'guest_room_cleanings() exists');
+select has_function('public', 'cleaning_overview', 'cleaning_overview() exists');
 
 -- ----- submit_guest rejects short phone -----
 

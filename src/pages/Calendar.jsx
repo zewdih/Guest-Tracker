@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: MIT OR Apache-2.0
 
 import { useEffect, useState, useMemo } from 'react'
+import { Link } from 'react-router-dom'
 import { supabase } from '../supabaseClient'
 import { today, fmt, nightsBetween, plusDays, fmtWeekday, cleanupDeadline } from '../utils/dateHelpers'
 import { CLEANUP_STEPS } from '../config'
@@ -336,6 +337,10 @@ export default function Calendar() {
         <div className="banner ok">{status.msg}</div>
         <p className="small muted" style={{ marginTop: 8 }}>
           Only the House Manager/House President will see your booking details.
+        </p>
+        <p className="small muted" style={{ marginTop: 8 }}>
+          After your guest leaves, tap <Link to="/clean">Log a cleaning</Link> on the home
+          screen and snap a photo of the clean room.
         </p>
         <button className="btn full" onClick={addAnother} style={{ marginTop: 14 }}>Book another stay</button>
         <p className="small muted" style={{ marginTop: 12 }}>
