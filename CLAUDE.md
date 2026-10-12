@@ -44,7 +44,7 @@ Variables: `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY` (public by design — R
 Single-page React app with React Router v6. No state management library — components call Supabase directly and hold state locally.
 
 - **Entry:** `main.jsx` (wraps the app in `ErrorBoundary`) → `App.jsx` (routes + `<Protected>` guard + TopBar)
-- **Auth:** `useAuth.jsx` — React context over Supabase auth (email magic link). Auto-creates a `profiles` row on first login. Managers are set via `role` in `profiles` (`MANAGER_EMAIL` is auto-promoted).
+- **Auth:** `useAuth.jsx` — React context over Supabase auth (email + password sign-in). Auto-creates a `profiles` row on first login. Managers are set via `role` in `profiles` (`MANAGER_EMAIL` is auto-promoted).
 - **Theme:** `useTheme.js` — dark/light toggle persisted to localStorage (`aath-theme`), drives CSS variables via `[data-theme]`. All styles in `theme.css`.
 - **Config:** `config.js` — app-wide constants (`SHOW_HOST_NAMES`, `OVERSTAY_FINE_PER_NIGHT`, `MANAGER_EMAIL`, `DASHBOARD_REFRESH_INTERVAL`, `CLEANUP_STEPS`)
 - **Logging:** `logger.js` (dev → local log server; prod → `VITE_LOG_ENDPOINT` if set)
@@ -58,7 +58,7 @@ Single-page React app with React Router v6. No state management library — comp
 | `/add` | Intake | None | Door check-in for own-room guests. Review screen first; the visit is saved only on "Complete Check-In" |
 | `/calendar` | Calendar | None | Book the guest room (tomorrow or later — no same-day self-booking; a signed-in manager can book today — in manager mode the form asks for the host's details, since the host's email is how they log the cleaning and cancel). Confirm screen with clean-by date + 6-item cleanup checklist; saved only on "Confirm Booking" |
 | `/clean` | Clean | None (booking email) | Log a guest-room cleaning: find ended stay by email, take photo, submit for HM review |
-| `/login` | Login | None | Email magic-link sign-in |
+| `/login` | Login | None | Email + password sign-in |
 | `/feed` | MemberFeed | None | Lobby board — guest counts, host names only; collapsible Guest room card (Ready / Turnover in progress / Awaiting check) |
 | `/manager` | ManagerDashboard | Manager | "+ Add a guest" (door form) and "Book the guest room" shortcuts; Registry, emergency roster, monthly stats, bookings, **Cleanings** (approve / send back; cards on phones), history |
 
