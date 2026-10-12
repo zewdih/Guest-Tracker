@@ -274,8 +274,22 @@ tbody tr:hover { background: var(--row-hover); }
 tr.detail-row { background: var(--surface-2); }
 tr.detail-row td { border-bottom: 1px solid var(--border); padding: 6px 12px; }
 
+/* "Show all / Show less" under long manager lists */
+.show-more {
+  display: flex; align-items: center; justify-content: center; width: 100%;
+  margin-top: 10px; min-height: 44px; border: 1px solid var(--border); border-radius: 10px;
+  background: var(--surface); color: var(--text); font: inherit; font-weight: 600; cursor: pointer;
+}
+.show-more:hover { border-color: var(--brand); color: var(--brand); }
+
 /* Manager dashboard header buttons — wrap onto their own line on phones */
 .dash-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+@media (max-width: 640px) {
+  /* Phones: dashboard buttons full width and centered, tab pills centered */
+  .dash-actions { width: 100%; flex-direction: column; }
+  .dash-actions .btn { width: 100%; justify-content: center; }
+  .tabs { justify-content: center; }
+}
 
 /* Manager tables: on phones each row becomes a card with labeled lines,
    so nothing falls off the right edge. Computers keep the normal table. */

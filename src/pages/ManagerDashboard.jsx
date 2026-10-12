@@ -4,7 +4,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { supabase } from '../supabaseClient'
-import { OVERSTAY_FINE_PER_NIGHT, DASHBOARD_REFRESH_INTERVAL } from '../config'
+import { OVERSTAY_FINE_PER_NIGHT, DASHBOARD_REFRESH_INTERVAL, LIST_PREVIEW_COUNT } from '../config'
 import { today, fmt, fmtFull, fmtTimestamp, nightsBetween } from '../utils/dateHelpers'
 import { cleaningPhotoUrl } from '../utils/image'
 
@@ -40,6 +40,18 @@ export default function ManagerDashboard() {
   const [history, setHistory] = useState([])        // closed visits
   const [statusByGuest, setStatusByGuest] = useState({})
   const [tab, setTab] = useState('registry')
+  // Long lists show the first few rows, then "Show all" (keeps phone screens short)
+  const [showAll, setShowAll] = useState({})
+  const preview = (key, list) => (showAll[key] ? list : list.slice(0, LIST_PREVIEW_COUNT))
+  function showMore(key, total, noun = '') {
+    if (total <= LIST_PREVIEW_COUNT) return null
+    const open = !!showAll[key]
+    return (
+      <button className="show-more" onClick={() => setShowAll((s) => ({ ...s, [key]: !open }))}>
+        {open ? 'Show less' : `Show all ${total}${noun} (${total - LIST_PREVIEW_COUNT} more)`}
+      </button>
+    )
+  }
   const [loading, setLoading] = useState(true)
   const [bookings, setBookings] = useState([])
   const [cleanings, setCleanings] = useState([])     // guest room stays ended in the last 30 days
@@ -155,6 +167,24 @@ export default function ManagerDashboard() {
     }
     return null
   }
+
+  // This month: guests with nights logged, most nights first
+  const monthGuests = useMemo(
+    () => Object.values(statusByGuest)
+      .filter((g) => g.nights_this_month > 0)
+      .sort((a, b) => b.nights_this_month - a.nights_this_month),
+    [statusByGuest]
+  )
+
+  // Bookings: upcoming and current first (soonest first), then past/closed/cancelled (newest first)
+  const sortedBookings = useMemo(() => {
+    const t = today()
+    const live = (b) => b.status === 'confirmed' && !b.visit?.closed_at && b.departure_date >= t
+    return [
+      ...bookings.filter(live).sort((a, b) => a.arrival_date.localeCompare(b.arrival_date)),
+      ...bookings.filter((b) => !live(b)).sort((a, b) => b.arrival_date.localeCompare(a.arrival_date)),
+    ]
+  }, [bookings])
 
   const inHouse = useMemo(
     () => visits.filter((v) => v.arrival_date <= today() && today() <= v.expected_departure),
@@ -448,7 +478,7 @@ export default function ManagerDashboard() {
                     </tr>
                   </thead>
                   <tbody>
-                    {visits.map((v) => {
+                    {preview('registry', visits).map((v) => {
                       const st = visitStatus[v.id] || 'casual'
                       return (
                         <tr key={v.id} className={st !== 'casual' ? `row-${st}` : ''}>
@@ -495,6 +525,7 @@ export default function ManagerDashboard() {
                   </tbody>
                 </table>
               </div>
+              {showMore('registry', visits.length, ' guests')}
               <p className="small muted" style={{ marginTop: 10 }}>
                 Overstay = 7+ consecutive nights. Fine: ${OVERSTAY_FINE_PER_NIGHT}/night to the host — only after documented outreach (Section 6). Max stay: 14 consecutive days / 30 nonconsecutive per semester.
               </p>
@@ -514,10 +545,7 @@ export default function ManagerDashboard() {
             </div>
           ) : (
             <div className="month-list">
-              {Object.values(statusByGuest)
-                .filter((g) => g.nights_this_month > 0)
-                .sort((a, b) => b.nights_this_month - a.nights_this_month)
-                .map((g) => {
+              {preview('month', monthGuests).map((g) => {
                   const isOverstay = g.longest_single_visit > 7
                   const isExtended = !isOverstay && g.nights_this_month >= 5
                   const nearConsecCap = g.longest_single_visit >= 12
@@ -562,6 +590,7 @@ export default function ManagerDashboard() {
                     </div>
                   )
                 })}
+              {showMore('month', monthGuests.length, ' guests')}
               <p className="small muted" style={{ marginTop: 14 }}>
                 5+ nights/month → extended. 7+ consecutive → overstay. Caps: 14 consecutive days, 30 nonconsecutive per semester.
               </p>
@@ -585,7 +614,7 @@ export default function ManagerDashboard() {
               <table className="stack-table">
                 <thead><tr><th>Guest</th><th>Phone</th><th>Host</th><th>Here until</th></tr></thead>
                 <tbody>
-                  {inHouse.map((v) => (
+                  {preview('roster', inHouse).map((v) => (
                     <tr key={v.id}>
                       <td className="cell-title">{v.guests?.full_name}</td>
                       <td data-label="Phone">{v.guests?.phone}</td>
@@ -595,6 +624,7 @@ export default function ManagerDashboard() {
                   ))}
                 </tbody>
               </table>
+              {showMore('roster', inHouse.length, ' people')}
             </div>
           )}
         </div>
@@ -624,7 +654,7 @@ export default function ManagerDashboard() {
                     <tr><th>Host</th><th>Guest</th><th>Stay</th><th>Clean by</th><th>Status</th><th>Photo</th><th></th></tr>
                   </thead>
                   <tbody>
-                    {sortedCleanings.map((c) => (
+                    {preview('cleanings', sortedCleanings).map((c) => (
                       <tr key={c.booking_id}>
                         <td>{c.host_name}</td>
                         <td>{c.guest_name}</td>
@@ -647,7 +677,7 @@ export default function ManagerDashboard() {
 
               {/* Phone: one card per stay, buttons always in reach */}
               <div className="clean-cards">
-                {sortedCleanings.map((c) => (
+                {preview('cleanings', sortedCleanings).map((c) => (
                   <div className="clean-review-card" key={c.booking_id}>
                     {c.photo_path && (
                       <a href={cleaningPhotoUrl(supabase, c.photo_path)} target="_blank" rel="noreferrer">
@@ -665,6 +695,7 @@ export default function ManagerDashboard() {
                   </div>
                 ))}
               </div>
+              {showMore('cleanings', sortedCleanings.length, ' stays')}
             </>
           )}
         </div>
@@ -690,7 +721,7 @@ export default function ManagerDashboard() {
                   </tr>
                 </thead>
                 <tbody>
-                  {bookings.map((b) => {
+                  {preview('bookings', sortedBookings).map((b) => {
                     const t = today()
                     const bookingStatus = b.visit?.closed_at ? 'Closed'
                       : t < b.arrival_date ? 'Upcoming'
@@ -752,6 +783,7 @@ export default function ManagerDashboard() {
                   })}
                 </tbody>
               </table>
+              {showMore('bookings', sortedBookings.length, ' bookings')}
             </div>
           )}
         </div>
@@ -820,7 +852,7 @@ export default function ManagerDashboard() {
                     </tr>
                   </thead>
                   <tbody>
-                    {filteredHistory.map((v) => (
+                    {preview('history', filteredHistory).map((v) => (
                       <tr key={v.id}>
                         {histEditId === v.id ? (
                           <>
@@ -863,6 +895,7 @@ export default function ManagerDashboard() {
                   </tbody>
                 </table>
               </div>
+              {showMore('history', filteredHistory.length, ' visits')}
             </>
           )}
         </div>

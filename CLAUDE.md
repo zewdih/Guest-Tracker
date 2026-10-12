@@ -46,7 +46,7 @@ Single-page React app with React Router v6. No state management library — comp
 - **Entry:** `main.jsx` (wraps the app in `ErrorBoundary`) → `App.jsx` (routes + `<Protected>` guard + TopBar)
 - **Auth:** `useAuth.jsx` — React context over Supabase auth (email + password sign-in). Auto-creates a `profiles` row on first login. Managers are set via `role` in `profiles` (`MANAGER_EMAIL` is auto-promoted).
 - **Theme:** `useTheme.js` — dark/light toggle persisted to localStorage (`aath-theme`), drives CSS variables via `[data-theme]`. All styles in `theme.css`.
-- **Config:** `config.js` — app-wide constants (`SHOW_HOST_NAMES`, `OVERSTAY_FINE_PER_NIGHT`, `MANAGER_EMAIL`, `DASHBOARD_REFRESH_INTERVAL`, `CLEANUP_STEPS`)
+- **Config:** `config.js` — app-wide constants (`SHOW_HOST_NAMES`, `OVERSTAY_FINE_PER_NIGHT`, `MANAGER_EMAIL`, `DASHBOARD_REFRESH_INTERVAL`, `LIST_PREVIEW_COUNT` — manager lists show this many rows before "Show all", `CLEANUP_STEPS`)
 - **Logging:** `logger.js` (dev → local log server; prod → `VITE_LOG_ENDPOINT` if set)
 - **Utils:** `utils/dateHelpers.js` (dates, `cleanupDeadline`), `utils/image.js` (shrink photos before upload, cleaning photo URLs)
 

@@ -378,7 +378,7 @@ export default function Calendar() {
         </p>
         {isManager ? (
           <div className="banner ok" style={{ marginTop: 12, marginBottom: 0 }}>
-            House Manager: you can book today for someone. Members need at least a day's notice.
+            House Manager: you can book today for a member.
           </div>
         ) : (
           <p className="small" style={{ marginTop: 10, marginBottom: 0 }}>
