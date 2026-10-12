@@ -4,20 +4,12 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { supabase } from '../supabaseClient'
+import { log } from '../logger'
 import { today, plusDays, nightsBetween } from '../utils/dateHelpers'
 
 function capitalize(str) {
   return str.replace(/\b\w/g, (c) => c.toUpperCase())
 }
-
-const CLEANUP_STEPS = [
-  { icon: '🛏️', text: 'Clean the pillowcases' },
-  { icon: '🛏️', text: 'Clean the bed sheets' },
-  { icon: '🛏️', text: 'Clean the blankets' },
-  { icon: '🧹', text: 'Sweep or vacuum the room' },
-  { icon: '🍽️', text: 'Remove any cups, plates, or leftover belongings from the room' },
-  { icon: '✨', text: 'Put the blankets, pillowcases, and sheets back on the bed as you found them' },
-]
 
 // What's expected based on cumulative stay
 function stayExpectations(cumulativeNights, longestSingleVisit) {
@@ -67,11 +59,14 @@ export default function Intake() {
     arrival_date: today(), expected_departure: plusDays(today(), 2),
   })
   const [status, setStatus] = useState({ state: 'idle', msg: '' })
-  // Acknowledgment step state
-  const [ackChecks, setAckChecks] = useState(CLEANUP_STEPS.map(() => false))
-  const [submitResult, setSubmitResult] = useState(null) // { host_name, nights }
+  const [submitResult, setSubmitResult] = useState(null) // preview of the stay, before it's saved
 
   const [showBadgeInfo, setShowBadgeInfo] = useState(false)
+
+  // Each step is a new screen — start it at the top (matters on phones)
+  const screen = status.state === 'acknowledge' || status.state === 'saving' ? 'review'
+    : status.state === 'done' ? 'done' : 'form'
+  useEffect(() => { window.scrollTo(0, 0) }, [screen])
 
   useEffect(() => {
     supabase.rpc('house_roster').then(({ data }) => setRoster(data || []))
@@ -81,36 +76,50 @@ export default function Intake() {
 
   const nights = nightsBetween(form.arrival_date, form.expected_departure)
 
+  // Step 1 → 2: preview the stay. Nothing is saved until "Complete Check-In".
   async function handleSubmit(e) {
     e.preventDefault()
+    if (form.phone.replace(/\D/g, '').length < 7) {
+      setStatus({ state: 'error', msg: 'Please enter a valid phone number.' })
+      return
+    }
     setStatus({ state: 'busy', msg: '' })
+
+    // Nights already logged this month for this guest (before this stay)
+    const { data: cumData } = await supabase.rpc('guest_month_status', { p_phone: form.phone })
+    const prior = cumData || { nights_this_month: 0, longest_single_visit: 0 }
+    const sameMonth = form.arrival_date.slice(0, 7) === today().slice(0, 7)
+
+    setSubmitResult({
+      nights,
+      guest_name: capitalize(form.full_name.trim()),
+      cumulative_nights: prior.nights_this_month + (sameMonth ? nights : 0),
+      longest_single_visit: Math.max(prior.longest_single_visit, nights),
+    })
+    setStatus({ state: 'acknowledge', msg: '' })
+  }
+
+  // Step 2 → 3: the host reviewed the stay — now record the visit.
+  async function finishCheckin() {
+    setStatus({ state: 'saving', msg: '' })
     const { data, error } = await supabase.rpc('submit_guest', {
       p_host_id: form.host_id,
-      p_full_name: capitalize(form.full_name.trim()),
+      p_full_name: submitResult.guest_name,
       p_phone: form.phone,
       p_arrival_date: form.arrival_date,
       p_expected_departure: form.expected_departure,
     })
     if (error) {
-      setStatus({ state: 'error', msg: error.message })
-    } else {
-      // Look up cumulative nights this month for the guest (now that the visit is recorded)
-      const { data: cumData } = await supabase.rpc('guest_month_status', { p_phone: form.phone })
-      const cumulative = cumData || { nights_this_month: data.nights, longest_single_visit: data.nights }
-
-      setSubmitResult({
-        ...data,
-        guest_name: capitalize(form.full_name.trim()),
-        cumulative_nights: cumulative.nights_this_month,
-        longest_single_visit: cumulative.longest_single_visit,
-      })
-      setAckChecks(CLEANUP_STEPS.map(() => false))
-      setStatus({ state: 'acknowledge', msg: '' })
+      log.error('Guest check-in failed', { page: 'Intake', error: error.message })
+      setStatus({ state: 'acknowledge', msg: error.message })
+      return
     }
+    setStatus({ state: 'done', msg: `Your guest, ${submitResult.guest_name}, is checked in for ${data.nights} night${data.nights > 1 ? 's' : ''}.` })
   }
 
-  function finishCheckin() {
-    setStatus({ state: 'done', msg: `Your guest, ${submitResult.guest_name}, is checked in for ${submitResult.nights} night${submitResult.nights > 1 ? 's' : ''}.` })
+  function editDetails() {
+    setSubmitResult(null)
+    setStatus({ state: 'idle', msg: '' })
   }
 
   function addAnother() {
@@ -119,15 +128,10 @@ export default function Intake() {
     setStatus({ state: 'idle', msg: '' })
   }
 
-  function toggleAck(i) {
-    setAckChecks((prev) => prev.map((c, j) => j === i ? !c : c))
-  }
-
   // ---- Step 2: Acknowledgment screen (after form submit, before "done") ----
-  if (status.state === 'acknowledge' && submitResult) {
+  if ((status.state === 'acknowledge' || status.state === 'saving') && submitResult) {
     const stayType = stayExpectations(submitResult.cumulative_nights, submitResult.longest_single_visit)
     const info = STAY_INFO[stayType]
-    const allAcked = ackChecks.every(Boolean)
     const showCumulative = submitResult.cumulative_nights > submitResult.nights
     return (
       <div className="card" style={{ maxWidth: 440, margin: '24px auto' }}>
@@ -168,30 +172,17 @@ export default function Intake() {
           </div>
         )}
 
-        {/* Divider */}
-        <hr className="ack-divider" />
-
-        {/* Guest room cleanup */}
-        <div className="ack-cleanup-intro">
-          <p className="ack-cleanup-title">Guest room cleanup</p>
-          <p>
-            I agree to complete the following within 48 hours of my guest's departure.
-          </p>
-        </div>
-
-        {CLEANUP_STEPS.map((step, i) => (
-          <label key={i} className={`ack-check ${ackChecks[i] ? 'checked' : ''}`} onClick={() => toggleAck(i)}>
-            <span className={`ack-checkbox ${ackChecks[i] ? 'done' : ''}`}>
-              {ackChecks[i] ? '✓' : ''}
-            </span>
-            <span>{step.text}</span>
-          </label>
-        ))}
+        {status.msg && <div className="banner error" style={{ marginTop: 18 }}>{status.msg}</div>}
 
         <button className="btn full" style={{ marginTop: 18 }}
-          disabled={!allAcked}
+          disabled={status.state === 'saving'}
           onClick={finishCheckin}>
-          ✅ Complete Check-In
+          {status.state === 'saving' ? 'Saving…' : '✅ Complete Check-In'}
+        </button>
+        <button className="link-btn small ack-back"
+          disabled={status.state === 'saving'}
+          onClick={editDetails}>
+          ← Edit guest details
         </button>
       </div>
     )
@@ -247,7 +238,7 @@ export default function Intake() {
         <p className="small muted" style={{ marginTop: 8 }}>That's {nights} night{nights > 1 ? 's' : ''}.</p>
 
         <button className="btn full" type="submit" disabled={status.state === 'busy'} style={{ marginTop: 12 }}>
-          {status.state === 'busy' ? 'Saving…' : 'Check in guest'}
+          {status.state === 'busy' ? 'Loading…' : 'Check in guest'}
         </button>
       </form>
     </div>

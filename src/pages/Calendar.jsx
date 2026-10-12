@@ -2,8 +2,10 @@
 // SPDX-License-Identifier: MIT OR Apache-2.0
 
 import { useEffect, useState, useMemo } from 'react'
+import { Link } from 'react-router-dom'
 import { supabase } from '../supabaseClient'
-import { today, fmt, nightsBetween } from '../utils/dateHelpers'
+import { today, fmt, nightsBetween, plusDays, fmtWeekday, cleanupDeadline } from '../utils/dateHelpers'
+import { CLEANUP_STEPS } from '../config'
 
 // ---- calendar-specific helpers ----
 const DAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
@@ -32,6 +34,8 @@ export default function Calendar() {
     host_id: '', phone: '', email: '', guest_name: '', guest_phone: '',
   })
   const [status, setStatus] = useState({ state: 'idle', msg: '' })
+  // Cleanup agreement step state
+  const [ackChecks, setAckChecks] = useState(CLEANUP_STEPS.map(() => false))
 
   // Cancel lookup state
   const [showCancel, setShowCancel] = useState(false)
@@ -48,6 +52,19 @@ export default function Calendar() {
   }
 
   useEffect(() => { loadBlocked() }, [])
+
+  // Confirm and success are new screens — start them at the top (matters on phones).
+  // Going back to edit lands on the booking form, which sits below the calendar.
+  const screen = status.state === 'acknowledge' || status.state === 'saving' ? 'confirm'
+    : status.state === 'done' ? 'done' : 'form'
+  const [returningToForm, setReturningToForm] = useState(false)
+  useEffect(() => {
+    if (screen !== 'form') window.scrollTo(0, 0)
+    else if (returningToForm) {
+      document.getElementById('booking-form')?.scrollIntoView({ block: 'start' })
+      setReturningToForm(false)
+    }
+  }, [screen])
 
   // Load house roster for host dropdown (same pattern as Intake)
   useEffect(() => {
@@ -156,10 +173,17 @@ export default function Calendar() {
 
   const set = (k) => (e) => setForm((f) => ({ ...f, [k]: e.target.value }))
 
-  async function handleBook(e) {
+  // Step 1 → 2: details filled in — show the cleanup agreement. Nothing is saved yet.
+  function handleBook(e) {
     e.preventDefault()
     if (!range.start || !range.end) return
-    setStatus({ state: 'busy', msg: '' })
+    setAckChecks(CLEANUP_STEPS.map(() => false))
+    setStatus({ state: 'acknowledge', msg: '' })
+  }
+
+  // Step 2 → 3: the host agreed to the cleanup terms — now save the booking.
+  async function confirmBooking() {
+    setStatus({ state: 'saving', msg: '' })
 
     const nights = nightsBetween(range.start, range.end)
     const { data, error } = await supabase.rpc('submit_booking', {
@@ -173,7 +197,7 @@ export default function Calendar() {
     })
 
     if (error) {
-      setStatus({ state: 'error', msg: error.message })
+      setStatus({ state: 'acknowledge', msg: error.message })
     } else {
       setStatus({
         state: 'done',
@@ -183,6 +207,15 @@ export default function Calendar() {
       setForm({ host_id: '', phone: '', email: '', guest_name: '', guest_phone: '' })
       loadBlocked()
     }
+  }
+
+  function editDetails() {
+    setReturningToForm(true)
+    setStatus({ state: 'idle', msg: '' })
+  }
+
+  function toggleAck(i) {
+    setAckChecks((prev) => prev.map((c, j) => j === i ? !c : c))
   }
 
   function addAnother() {
@@ -228,6 +261,73 @@ export default function Calendar() {
   const todayStr = today()
   const nights = range.start && range.end ? nightsBetween(range.start, range.end) : 0
 
+  // ---- cleanup agreement screen (before the booking is saved) ----
+  if ((status.state === 'acknowledge' || status.state === 'saving') && range.start && range.end) {
+    // The next booking starts on the first taken date within 2 days after departure
+    const nextArrival = [1, 2].map((n) => plusDays(range.end, n)).find((d) => blockedDates.has(d))
+    const deadline = cleanupDeadline(range.end, nextArrival)
+    const checkedCount = ackChecks.filter(Boolean).length
+    const allAcked = checkedCount === CLEANUP_STEPS.length
+    const confirmLabel = status.state === 'saving' ? 'Booking…'
+      : allAcked ? '✅ Confirm Booking'
+      : checkedCount === 0 ? `Tick all ${CLEANUP_STEPS.length} to confirm`
+      : `${checkedCount} of ${CLEANUP_STEPS.length} checked`
+    return (
+      <div className="card" style={{ maxWidth: 440, margin: '24px auto' }}>
+        <div className="ack-header">
+          <div className="ack-header-icon">🛏️</div>
+          <h2 className="ack-header-title">Almost done!</h2>
+          <p className="ack-header-detail">
+            Guest room for {form.guest_name.trim().split(' ')[0]} · {fmt(range.start)} → {fmt(range.end)} ({nights} night{nights !== 1 ? 's' : ''})
+          </p>
+        </div>
+
+        {deadline.tight ? (
+          <div className="banner warn">
+            ⚠️ Next guest arrives {fmtWeekday(deadline.cleanBy)},{' '}
+            {deadline.daysAfter === 1 ? 'the day after' : 'two days after'} your guest leaves.
+            The room must be clean before they arrive.
+          </div>
+        ) : (
+          <div className="banner ok">🧹 Clean by {fmtWeekday(deadline.cleanBy)}</div>
+        )}
+
+        <hr className="ack-divider" />
+
+        {/* Guest room cleanup */}
+        <div className="ack-cleanup-intro">
+          <p className="ack-cleanup-title">Guest room cleanup</p>
+          <p>
+            I agree to have the following items cleaned in the room within 48 hours of my
+            guest's departure, or before the next booking, whichever comes first.
+          </p>
+        </div>
+
+        {CLEANUP_STEPS.map((step, i) => (
+          <label key={i} className={`ack-check ${ackChecks[i] ? 'checked' : ''}`} onClick={() => toggleAck(i)}>
+            <span className={`ack-checkbox ${ackChecks[i] ? 'done' : ''}`}>
+              {ackChecks[i] ? '✓' : ''}
+            </span>
+            <span>{step.text}</span>
+          </label>
+        ))}
+
+        {status.msg && <div className="banner error" style={{ marginTop: 18 }}>{status.msg}</div>}
+
+        <button className="btn full" style={{ marginTop: 18 }}
+          disabled={!allAcked || status.state === 'saving'}
+          onClick={confirmBooking}>
+          {confirmLabel}
+        </button>
+        <button className="link-btn small ack-back"
+          disabled={status.state === 'saving'}
+          onClick={editDetails}>
+          ← Edit booking details
+        </button>
+      </div>
+    )
+  }
+
   // ---- success screen ----
   if (status.state === 'done') {
     return (
@@ -237,6 +337,10 @@ export default function Calendar() {
         <div className="banner ok">{status.msg}</div>
         <p className="small muted" style={{ marginTop: 8 }}>
           Only the House Manager/House President will see your booking details.
+        </p>
+        <p className="small muted" style={{ marginTop: 8 }}>
+          After your guest leaves, tap <Link to="/clean">Log a cleaning</Link> on the home
+          screen and snap a photo of the clean room.
         </p>
         <button className="btn full" onClick={addAnother} style={{ marginTop: 14 }}>Book another stay</button>
         <p className="small muted" style={{ marginTop: 12 }}>
@@ -315,7 +419,7 @@ export default function Calendar() {
 
       {/* Booking form — appears when a range is selected */}
       {range.start && range.end && (
-        <div className="card booking-form" style={{ maxWidth: 480, margin: '0 auto 16px' }}>
+        <div id="booking-form" className="card booking-form" style={{ maxWidth: 480, margin: '0 auto 16px' }}>
           <h3 style={{ margin: '0 0 4px' }}>
             {fmt(range.start)} → {fmt(range.end)}
             <span className="muted small" style={{ fontWeight: 400, marginLeft: 8 }}>
@@ -354,9 +458,8 @@ export default function Calendar() {
               Your details are private to the House Manager/House President.
             </p>
 
-            <button className="btn full" type="submit" disabled={status.state === 'busy'}
-              style={{ marginTop: 10 }}>
-              {status.state === 'busy' ? 'Booking…' : 'Book the guest room'}
+            <button className="btn full" type="submit" style={{ marginTop: 10 }}>
+              Book the guest room
             </button>
           </form>
         </div>

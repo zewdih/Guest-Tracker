@@ -90,16 +90,23 @@ export default function Welcome() {
         <Entry to="/calendar" icon="📅" title="Book the guest room"
           sub="Reserve the guest room for upcoming guests" delay={200} />
 
-        {loading ? null : session && profile?.role === 'manager' ? (
+        {/* Signed-in managers keep a full-size shortcut to their dashboard */}
+        {!loading && session && profile?.role === 'manager' && (
           <Entry onClick={() => navigate('/manager')}
             icon="🏠"
             title={`Continue as ${profile?.display_name || 'manager'}`}
-            sub="Open the full registry" delay={280} />
-        ) : (
-          <Entry to="/login" icon="🔑"
-            title="HP/HM Log In"
-            sub="For the HP/HM only" delay={280} />
+            sub="Open the full registry" delay={240} />
         )}
+
+        {/* Occasional actions: small links so the main three stand out */}
+        <div className="quick-links stagger" style={{ animationDelay: '280ms' }}>
+          <Link to="/clean">🧹 Log a cleaning</Link>
+          {!loading && !(session && profile?.role === 'manager') && (
+            <>
+              <Link to="/login">🔑 HP/HM log in</Link>
+            </>
+          )}
+        </div>
       </div>
     </div>
   )

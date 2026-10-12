@@ -6,6 +6,7 @@ import { Link } from 'react-router-dom'
 import { supabase } from '../supabaseClient'
 import { OVERSTAY_FINE_PER_NIGHT, DASHBOARD_REFRESH_INTERVAL } from '../config'
 import { today, fmt, fmtFull, fmtTimestamp, nightsBetween } from '../utils/dateHelpers'
+import { cleaningPhotoUrl } from '../utils/image'
 
 function ordinal(n) {
   const s = ['th', 'st', 'nd', 'rd'], v = n % 100
@@ -41,6 +42,7 @@ export default function ManagerDashboard() {
   const [tab, setTab] = useState('registry')
   const [loading, setLoading] = useState(true)
   const [bookings, setBookings] = useState([])
+  const [cleanings, setCleanings] = useState([])     // guest room stays ended in the last 30 days
   const [editId, setEditId] = useState(null)
   const [editFields, setEditFields] = useState({})
 
@@ -61,7 +63,7 @@ export default function ManagerDashboard() {
 
   async function load() {
     setLoading(true)
-    const [{ data: v }, { data: s }, { data: b }] = await Promise.all([
+    const [{ data: v }, { data: s }, { data: b }, { data: cl }] = await Promise.all([
       supabase
         .from('visits')
         .select('id, arrival_date, expected_departure, nights, closed_at, expired_at, guest_id, guests(full_name, phone), host:profiles!host_id(display_name)')
@@ -71,11 +73,13 @@ export default function ManagerDashboard() {
         .from('bookings')
         .select('*, host:profiles!host_id(display_name), visit:visits!visit_id(closed_at, arrival_date, expected_departure)')
         .order('arrival_date', { ascending: true }),
+      supabase.rpc('cleaning_overview'),
     ])
     const all = v || []
     setVisits(all.filter((r) => !r.closed_at))
     setHistory(all.filter((r) => r.closed_at))
     setBookings(b || [])
+    setCleanings(cl || [])
     const map = {}
     ;(s || []).forEach((row) => { map[row.guest_id] = row })
     setStatusByGuest(map)
@@ -87,6 +91,70 @@ export default function ManagerDashboard() {
     const interval = setInterval(load, DASHBOARD_REFRESH_INTERVAL)
     return () => clearInterval(interval)
   }, [])
+
+  // Review flow: host submits → manager approves (published) or sends back (re-clean)
+  const cleaningState = (c) =>
+    c.status === 'approved' ? 'approved'
+      : c.status === 'submitted' ? 'review'
+      : c.clean_by < today() ? 'overdue' : 'pending'
+  const toReview = cleanings.filter((c) => cleaningState(c) === 'review').length
+  const overdueCleanings = cleanings.filter((c) => cleaningState(c) === 'overdue').length
+  const reviewOrder = { review: 0, overdue: 1, pending: 2, approved: 3 }
+  const sortedCleanings = [...cleanings].sort((a, b) => reviewOrder[cleaningState(a)] - reviewOrder[cleaningState(b)])
+
+  async function reviewCleaning(c, status) {
+    if (status === 'sent_back' && !confirm(
+      `Send ${c.host_name}'s cleaning back? The photo won't be shown on the lobby board and ${c.host_name} ` +
+      `will need to re-clean and submit a new photo. The app doesn't notify them, so let them know directly.`)) return
+    await supabase.from('cleanings')
+      .update({ status, reviewed_at: new Date().toISOString() })
+      .eq('booking_id', c.booking_id)
+    load()
+  }
+
+  // Shared by the Cleanings table (computer) and cards (phone)
+  function cleaningStatus(c) {
+    const state = cleaningState(c)
+    return (
+      <>
+        {state === 'review' && <span className="badge extended">To review</span>}
+        {state === 'approved' && <span className="badge casual">Approved {fmtTimestamp(c.reviewed_at)}</span>}
+        {state === 'pending' && <span className="badge extended">Not cleaned yet</span>}
+        {state === 'overdue' && <span className="badge overstay">Overdue</span>}
+        {c.status === 'submitted' && (
+          <div className="small muted" style={{ marginTop: 4 }}>Submitted {fmtTimestamp(c.cleaned_at)}</div>
+        )}
+        {c.status === 'sent_back' && (
+          <div className="small muted" style={{ marginTop: 4 }}>Sent back {fmtTimestamp(c.reviewed_at)}</div>
+        )}
+      </>
+    )
+  }
+
+  function cleaningActions(c, large = false) {
+    const state = cleaningState(c)
+    if (state === 'review') {
+      return large ? (
+        <div className="clean-review-actions">
+          <button className="btn" onClick={() => reviewCleaning(c, 'approved')}>✅ Approve</button>
+          <button className="btn ghost" onClick={() => reviewCleaning(c, 'sent_back')}>↩️ Send back</button>
+        </div>
+      ) : (
+        <div className="row-actions">
+          <button className="icon-btn" onClick={() => reviewCleaning(c, 'approved')}>✅ Approve</button>
+          <button className="icon-btn danger" onClick={() => reviewCleaning(c, 'sent_back')}>↩️ Send back</button>
+        </div>
+      )
+    }
+    if (state === 'approved') {
+      return (
+        <button className={large ? 'btn ghost clean-review-undo' : 'icon-btn danger'} onClick={() => reviewCleaning(c, 'sent_back')}>
+          Send back
+        </button>
+      )
+    }
+    return null
+  }
 
   const inHouse = useMemo(
     () => visits.filter((v) => v.arrival_date <= today() && today() <= v.expected_departure),
@@ -346,6 +414,11 @@ export default function ManagerDashboard() {
         <button className={`tab ${tab === 'bookings' ? 'active' : ''}`} onClick={() => setTab('bookings')}>
           Bookings{bookings.length > 0 ? ` (${bookings.length})` : ''}
         </button>
+        <button className={`tab ${tab === 'cleanings' ? 'active' : ''}`} onClick={() => setTab('cleanings')}>
+          Cleanings{toReview + overdueCleanings > 0
+            ? ` (${[toReview && `${toReview} to review`, overdueCleanings && `${overdueCleanings} overdue`].filter(Boolean).join(' · ')})`
+            : ''}
+        </button>
         <button className={`tab ${tab === 'history' ? 'active' : ''}`} onClick={() => setTab('history')}>
           History{history.length > 0 ? ` (${history.length})` : ''}
         </button>
@@ -524,6 +597,75 @@ export default function ManagerDashboard() {
         </div>
       )}
 
+
+      {tab === 'cleanings' && (
+        <div className="card tab-panel" key="cleanings">
+          <h2>Guest room cleanings</h2>
+          <p className="muted">
+            Guest room stays that ended in the last 30 days. Check each submitted photo: Approve publishes
+            it on the lobby board with the host's name; Send back means the host re-cleans and submits again
+            (let them know directly). Overdue means the clean-by date passed with no approved cleaning.
+            Only managers see this page.
+          </p>
+          {cleanings.length === 0 ? (
+            <div className="empty-state">
+              <div className="empty-icon">🧹</div>
+              <p>No guest room stays ended in the last 30 days.</p>
+            </div>
+          ) : (
+            <>
+              {/* Computer: table */}
+              <div className="table-wrap clean-table">
+                <table>
+                  <thead>
+                    <tr><th>Host</th><th>Guest</th><th>Stay</th><th>Clean by</th><th>Status</th><th>Photo</th><th></th></tr>
+                  </thead>
+                  <tbody>
+                    {sortedCleanings.map((c) => (
+                      <tr key={c.booking_id}>
+                        <td>{c.host_name}</td>
+                        <td>{c.guest_name}</td>
+                        <td className="small">{fmt(c.arrival_date)} → {fmt(c.end_date)}</td>
+                        <td className="small">{fmt(c.clean_by)}</td>
+                        <td>{cleaningStatus(c)}</td>
+                        <td>
+                          {c.photo_path && (
+                            <a href={cleaningPhotoUrl(supabase, c.photo_path)} target="_blank" rel="noreferrer">
+                              <img className="clean-thumb" src={cleaningPhotoUrl(supabase, c.photo_path)} alt={`Cleaning by ${c.host_name}`} loading="lazy" />
+                            </a>
+                          )}
+                        </td>
+                        <td>{cleaningActions(c)}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+
+              {/* Phone: one card per stay, buttons always in reach */}
+              <div className="clean-cards">
+                {sortedCleanings.map((c) => (
+                  <div className="clean-review-card" key={c.booking_id}>
+                    {c.photo_path && (
+                      <a href={cleaningPhotoUrl(supabase, c.photo_path)} target="_blank" rel="noreferrer">
+                        <img src={cleaningPhotoUrl(supabase, c.photo_path)} alt={`Cleaning by ${c.host_name}`} loading="lazy" />
+                      </a>
+                    )}
+                    <div className="clean-review-body">
+                      <div><strong>{c.host_name}</strong> <span className="muted small">· guest {c.guest_name}</span></div>
+                      <div className="small muted">
+                        Stay {fmt(c.arrival_date)} → {fmt(c.end_date)} · clean by {fmt(c.clean_by)}
+                      </div>
+                      <div>{cleaningStatus(c)}</div>
+                      {cleaningActions(c, true)}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </>
+          )}
+        </div>
+      )}
 
       {tab === 'bookings' && (
         <div className="card tab-panel" key="bookings">

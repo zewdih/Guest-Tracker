@@ -19,3 +19,13 @@ export const MANAGER_EMAIL = 'zewditu9@gmail.com'
 
 // How often the manager dashboard auto-refreshes (milliseconds).
 export const DASHBOARD_REFRESH_INTERVAL = 5 * 60 * 1000
+
+// Guest room cleanup checklist the host agrees to when booking.
+export const CLEANUP_STEPS = [
+  { icon: '🛏️', text: 'Clean the pillowcases' },
+  { icon: '🛏️', text: 'Clean the bed sheets' },
+  { icon: '🛏️', text: 'Clean the blankets' },
+  { icon: '🧹', text: 'Sweep or vacuum the room' },
+  { icon: '🍽️', text: 'Remove any cups, plates, or leftover belongings from the room' },
+  { icon: '✨', text: 'Put the blankets, pillowcases, and sheets back on the bed as you found them' },
+]

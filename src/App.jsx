@@ -12,6 +12,7 @@ import Intake from './pages/Intake.jsx'
 import MemberFeed from './pages/MemberFeed.jsx'
 import ManagerDashboard from './pages/ManagerDashboard.jsx'
 import Calendar from './pages/Calendar.jsx'
+import Clean from './pages/Clean.jsx'
 
 const SCHEME_COLORS = {
   default: '#b5481f',
@@ -119,6 +120,7 @@ function AppRoutes() {
       <Route path="/" element={<Shell><Welcome /></Shell>} />
       <Route path="/feed" element={<Shell><MemberFeed /></Shell>} />
       <Route path="/calendar" element={<Shell><Calendar /></Shell>} />
+      <Route path="/clean" element={<Shell><Clean /></Shell>} />
       <Route path="/manager" element={
         <Shell><Protected managerOnly><ManagerDashboard /></Protected></Shell>
       } />

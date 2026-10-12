@@ -4,6 +4,7 @@
 import { createContext, useContext, useEffect, useState } from 'react'
 import { supabase } from './supabaseClient'
 import { MANAGER_EMAIL } from './config'
+import { log } from './logger'
 
 const AuthContext = createContext(null)
 
@@ -32,16 +33,21 @@ export function AuthProvider({ children }) {
 
     async function loadProfile() {
       const user = session.user
-      let { data } = await supabase
+      let { data, error: fetchErr } = await supabase
         .from('profiles')
         .select('display_name, role')
         .eq('id', user.id)
         .maybeSingle()
 
+      if (fetchErr) {
+        log.error('Failed to load profile', { error: fetchErr.message, userId: user.id })
+      }
+
       if (!data && !cancelled) {
         // First sign-in: create a member profile using their email name.
         const guessName = user.email?.split('@')[0] || 'Member'
-        await supabase.from('profiles').insert({ id: user.id, display_name: guessName })
+        const { error: insertErr } = await supabase.from('profiles').insert({ id: user.id, display_name: guessName })
+        if (insertErr) log.error('Failed to create profile', { error: insertErr.message, userId: user.id })
         // The database trigger auto-promotes the manager email. Re-fetch to get the actual role.
         const { data: fresh } = await supabase
           .from('profiles').select('display_name, role').eq('id', user.id).maybeSingle()
