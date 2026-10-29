@@ -19,10 +19,10 @@ if (!url || !key) {
 const supabase = createClient(url, key)
 
 // --- Members to deactivate ---
-const DEACTIVATE = ['Elizabeth']
+const DEACTIVATE = ['Elijah']
 
 // --- New members to add ---
-const NEW_MEMBERS = []
+const NEW_MEMBERS = ['Nathan']
 
 console.log('\n--- Deactivating departing members ---\n')
 
