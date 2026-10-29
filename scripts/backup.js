@@ -21,7 +21,7 @@ if (!url || !key) {
 
 const supabase = createClient(url, key)
 
-const TABLES = ['profiles', 'guests', 'visits', 'bookings']
+const TABLES = ['profiles', 'guests', 'visits', 'bookings', 'cleanings']
 
 const now = new Date()
 const stamp = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}_${String(now.getHours()).padStart(2, '0')}-${String(now.getMinutes()).padStart(2, '0')}-${String(now.getSeconds()).padStart(2, '0')}`

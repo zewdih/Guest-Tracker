@@ -35,12 +35,14 @@ if (!existsSync(dir)) {
 const supabase = createClient(url, key)
 
 // Restore in FK order: profiles first (referenced by visits + bookings),
-// then guests (referenced by visits), then visits, then bookings.
+// then guests (referenced by visits), then visits, then bookings,
+// then cleanings (references bookings).
 const TABLES = [
   { name: 'profiles', conflict: 'id' },
   { name: 'guests',   conflict: 'id' },
   { name: 'visits',   conflict: 'id' },
   { name: 'bookings', conflict: 'id' },
+  { name: 'cleanings', conflict: 'id' },
 ]
 
 console.log(`\nRestoring from ${dir}/\n`)
