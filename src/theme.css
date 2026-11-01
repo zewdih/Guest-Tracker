@@ -538,6 +538,12 @@ tr.detail-row td { border-bottom: 1px solid var(--border); padding: 6px 12px; }
 .entry-text strong { font-weight: 700; }
 .entry-arrow { margin-left: auto; color: var(--text-soft); transition: transform 0.15s; }
 .entry:hover .entry-arrow { transform: translateX(3px); }
+/* Paused entry: faded, not tappable (fade the insides — the slide-in animation owns opacity) */
+.entry.disabled { cursor: not-allowed; border-style: dashed; }
+.entry.disabled > * { opacity: .45; }
+.entry.disabled:hover { border-color: var(--border); box-shadow: none; }
+.entry.disabled:active { transform: none; }
+.entry.disabled .entry-arrow { visibility: hidden; }
 
 /* Small secondary links under the main entries (thumb-friendly height) */
 .quick-links {

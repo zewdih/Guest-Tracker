@@ -6,7 +6,7 @@ import { Link } from 'react-router-dom'
 import { supabase } from '../supabaseClient'
 import { useAuth } from '../useAuth'
 import { today, fmt, nightsBetween, plusDays, fmtWeekday, cleanupDeadline } from '../utils/dateHelpers'
-import { CLEANUP_STEPS } from '../config'
+import { CLEANUP_STEPS, GUEST_ROOM_PAUSED } from '../config'
 
 // ---- calendar-specific helpers ----
 const DAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
@@ -27,6 +27,8 @@ export default function Calendar() {
   // House rule: no same-day self-booking. The House Manager can still book today.
   const { profile } = useAuth()
   const isManager = profile?.role === 'manager'
+  // Booking paused by the house: members can only cancel, the House Manager can still book.
+  const paused = GUEST_ROOM_PAUSED && !isManager
   const [month, setMonth] = useState(() => {
     const now = new Date()
     return { year: now.getFullYear(), month: now.getMonth() }
@@ -393,14 +395,22 @@ export default function Calendar() {
       {/* Header */}
       <div className="card" style={{ maxWidth: 480, margin: '0 auto 16px' }}>
         <h2>Book the guest room</h2>
-        <p className="muted">
-          Pick the dates you need, then fill in a few details.
-          Only the House Manager/House President will see your info.
-          Blocked dates are already taken.
-        </p>
-        {isManager ? (
+        {!paused && (
+          <p className="muted">
+            Pick the dates you need, then fill in a few details.
+            Only the House Manager/House President will see your info.
+            Blocked dates are already taken.
+          </p>
+        )}
+        {paused ? (
+          <div className="banner error" style={{ marginTop: 12, marginBottom: 0 }}>
+            ⏸️ Guest room booking is paused for now. Questions? Ask the House President/House Manager.
+          </div>
+        ) : isManager ? (
           <div className="banner ok" style={{ marginTop: 12, marginBottom: 0 }}>
-            House President/House Manager: you can book today for a member.
+            {GUEST_ROOM_PAUSED
+              ? 'Guest room booking is paused for members. As House President/House Manager, you can still book.'
+              : 'House President/House Manager: you can book today for a member.'}
           </div>
         ) : (
           <p className="small" style={{ marginTop: 10, marginBottom: 0 }}>
@@ -409,6 +419,7 @@ export default function Calendar() {
         )}
       </div>
 
+      {!paused && (<>
       {/* Calendar grid */}
       <div className="card" style={{ maxWidth: 480, margin: '0 auto 16px' }}>
         <div className="cal-nav">
@@ -523,6 +534,7 @@ export default function Calendar() {
           </form>
         </div>
       )}
+      </>)}
 
       {/* Cancel / manage booking section */}
       <div className="card" style={{ maxWidth: 480, margin: '0 auto 16px' }}>

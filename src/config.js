@@ -17,6 +17,11 @@ export const OVERSTAY_FINE_PER_NIGHT = 43
 // The manager's email. This account is auto-promoted to manager on first login.
 export const MANAGER_EMAIL = 'zewditu9@gmail.com'
 
+// Pause guest room booking for members. When true, the "Book the guest room"
+// button is greyed out and the booking calendar is closed. The House Manager
+// can still book while signed in, and members can still cancel bookings.
+export const GUEST_ROOM_PAUSED = true
+
 // Manager dashboard lists show this many rows, then a "Show all" button.
 export const LIST_PREVIEW_COUNT = 5
 

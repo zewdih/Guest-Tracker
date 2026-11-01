@@ -4,7 +4,7 @@
 import { useEffect, useState } from 'react'
 import { Link, useNavigate, useLocation } from 'react-router-dom'
 import { useAuth } from '../useAuth'
-import { APP_NAME, APP_TAGLINE } from '../config'
+import { APP_NAME, APP_TAGLINE, GUEST_ROOM_PAUSED } from '../config'
 import { supabase } from '../supabaseClient'
 import { today } from '../utils/dateHelpers'
 
@@ -15,7 +15,7 @@ function greeting() {
   return 'Good evening'
 }
 
-function Entry({ to, icon, title, sub, onClick, delay }) {
+function Entry({ to, icon, title, sub, onClick, delay, disabled }) {
   const inner = (
     <>
       <span className="entry-icon" aria-hidden="true">{icon}</span>
@@ -27,6 +27,7 @@ function Entry({ to, icon, title, sub, onClick, delay }) {
     </>
   )
   const style = { animationDelay: `${delay}ms` }
+  if (disabled) return <div className="entry stagger disabled" style={style} aria-disabled="true">{inner}</div>
   if (onClick) return <button className="entry stagger" style={style} onClick={onClick}>{inner}</button>
   return <Link className="entry stagger" style={style} to={to}>{inner}</Link>
 }
@@ -87,8 +88,13 @@ export default function Welcome() {
         <Entry to="/feed" icon="👥" title="Lobby board"
           sub="See who's got visitors right now" delay={120} />
 
-        <Entry to="/calendar" icon="📅" title="Book the guest room"
-          sub="Reserve the guest room for upcoming guests" delay={200} />
+        {GUEST_ROOM_PAUSED && !(session && profile?.role === 'manager') ? (
+          <Entry disabled icon="📅" title="Book the guest room"
+            sub="Paused for now — ask the House Manager" delay={200} />
+        ) : (
+          <Entry to="/calendar" icon="📅" title="Book the guest room"
+            sub="Reserve the guest room for upcoming guests" delay={200} />
+        )}
 
         {/* Signed-in managers keep a full-size shortcut to their dashboard */}
         {!loading && session && profile?.role === 'manager' && (
