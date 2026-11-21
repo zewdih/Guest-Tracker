@@ -1,0 +1,45 @@
+name: Keep prod database awake
+
+# Supabase's free plan pauses a project after about a week with no activity
+# (that happened on 2026-11-21 and the door form went blank). This makes one
+# small read-only request to prod every 3 days so it always counts as in use.
+# If prod doesn't answer, this run fails and GitHub emails you.
+
+on:
+  schedule:
+    - cron: '17 16 */3 * *'   # every 3 days, ~8–9am California time
+  workflow_dispatch:           # "Run workflow" button on GitHub
+
+jobs:
+  ping:
+    name: Ping prod
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    env:
+      # Prod project URL and anon key. Both are public by design: the anon key
+      # ships in the live website's JavaScript, and RLS protects the data.
+      SUPABASE_URL: https://lswpyqgukttrjracbcoj.supabase.co
+      SUPABASE_ANON_KEY: ${{ vars.PROD_SUPABASE_ANON_KEY }}
+    steps:
+      - name: Ask prod for the house roster (read-only)
+        run: |
+          if [ -z "$SUPABASE_ANON_KEY" ]; then
+            echo "::error::Repository variable PROD_SUPABASE_ANON_KEY is not set"
+            exit 1
+          fi
+          for attempt in 1 2 3; do
+            code=$(curl -s -o body.json -w '%{http_code}' --max-time 30 \
+              -X POST "$SUPABASE_URL/rest/v1/rpc/house_roster" \
+              -H "apikey: $SUPABASE_ANON_KEY" \
+              -H "Authorization: Bearer $SUPABASE_ANON_KEY" \
+              -H "Content-Type: application/json" -d '{}') || code=000
+            count=$(jq 'if type == "array" then length else 0 end' body.json 2>/dev/null || echo 0)
+            echo "Attempt $attempt: HTTP $code, $count members"
+            if [ "$code" = "200" ] && [ "$count" -gt 0 ]; then
+              echo "Prod is awake."
+              exit 0
+            fi
+            sleep 20
+          done
+          echo "::error::Prod didn't answer. It may be paused — check https://supabase.com/dashboard/project/lswpyqgukttrjracbcoj"
+          exit 1
