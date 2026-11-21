@@ -559,6 +559,12 @@ tr.detail-row td { border-bottom: 1px solid var(--border); padding: 6px 12px; }
 }
 .quick-links a:hover { border-color: var(--brand); color: var(--brand); }
 .quick-links a:active { transform: scale(0.98); }
+/* Paused quick link: same pill, dashed and faded, not tappable */
+.quick-links .disabled {
+  color: var(--text-soft); font-weight: 600; cursor: not-allowed;
+  padding: 0 16px; min-height: 44px; display: inline-flex; align-items: center;
+  border: 1px dashed var(--border); border-radius: 999px; background: var(--surface); opacity: .6;
+}
 
 /* ---- Settings dropdown ---- */
 .settings-wrap { position: relative; }

@@ -18,7 +18,7 @@ export const OVERSTAY_FINE_PER_NIGHT = 43
 export const MANAGER_EMAIL = 'zewditu9@gmail.com'
 
 // Pause guest room booking for members. When true, the "Book the guest room"
-// button is greyed out and the booking calendar is closed. The House Manager
+// and "Log a cleaning" buttons are greyed out and those pages are closed. The House Manager
 // can still book while signed in, and members can still cancel bookings.
 export const GUEST_ROOM_PAUSED = true
 

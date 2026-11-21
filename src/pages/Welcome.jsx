@@ -106,7 +106,11 @@ export default function Welcome() {
 
         {/* Occasional actions: small links so the main three stand out */}
         <div className="quick-links stagger" style={{ animationDelay: '280ms' }}>
-          <Link to="/clean">🧹 Log a cleaning</Link>
+          {GUEST_ROOM_PAUSED && !(session && profile?.role === 'manager') ? (
+            <span className="disabled" aria-disabled="true" title="Paused with the guest room">🧹 Log a cleaning (paused)</span>
+          ) : (
+            <Link to="/clean">🧹 Log a cleaning</Link>
+          )}
           {!loading && !(session && profile?.role === 'manager') && (
             <>
               <Link to="/login">🔑 HP/HM log in</Link>

@@ -5,13 +5,17 @@ import { useEffect, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { supabase } from '../supabaseClient'
 import { log } from '../logger'
-import { CLEANUP_STEPS } from '../config'
+import { CLEANUP_STEPS, GUEST_ROOM_PAUSED } from '../config'
+import { useAuth } from '../useAuth'
 import { today, fmt, fmtWeekday, fmtTimestamp } from '../utils/dateHelpers'
 import { shrinkPhoto } from '../utils/image'
 
 // Log a guest room cleaning: find your stay by booking email, snap a photo, submit.
 export default function Clean() {
   const [params] = useSearchParams()
+  const { profile } = useAuth()
+  // Guest room paused: no stays to clean up after. The House Manager can still use it.
+  const paused = GUEST_ROOM_PAUSED && profile?.role !== 'manager'
   const [email, setEmail] = useState(params.get('email') || '')
   const [stays, setStays] = useState([])
   const [upcoming, setUpcoming] = useState([])  // stays that haven't ended yet
@@ -25,7 +29,7 @@ export default function Clean() {
 
   // Link from a reminder email: /clean?email=...&booking=... jumps straight in
   useEffect(() => {
-    if (params.get('email')) findStays(params.get('booking'))
+    if (!paused && params.get('email')) findStays(params.get('booking'))
   }, [])
 
   // Free the preview image when it's replaced
@@ -90,6 +94,18 @@ export default function Clean() {
     setStay(null)
     setPhoto(null)
     setStatus({ state: 'idle', msg: '' })
+  }
+
+  // ---- Paused ----
+  if (paused) {
+    return (
+      <div className="card" style={{ maxWidth: 440, margin: '24px auto' }}>
+        <h2>Log a cleaning</h2>
+        <div className="banner error" style={{ marginTop: 12, marginBottom: 0 }}>
+          ⏸️ The guest room is paused for now, so there are no cleanings to log. Questions? Ask the House President/House Manager.
+        </div>
+      </div>
+    )
   }
 
   // ---- Done ----
